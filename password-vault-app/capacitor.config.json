@@ -1,0 +1,11 @@
+{
+  "appId": "com.personal.passwordvault",
+  "appName": "密码本",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

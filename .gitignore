@@ -1,0 +1,17 @@
+# Dependencies
+password-vault-app/node_modules/
+
+# Android build outputs
+password-vault-app/android/.gradle/
+password-vault-app/android/build/
+password-vault-app/android/app/build/
+password-vault-app/android/local.properties
+password-vault-app/android/.idea/
+password-vault-app/android/**/*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">密码本</string>
+    <string name="title_activity_main">密码本</string>
+    <string name="package_name">com.personal.passwordvault</string>
+    <string name="custom_url_scheme">com.personal.passwordvault</string>
+</resources>
