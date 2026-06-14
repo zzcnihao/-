@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
 import android.database.Cursor;
@@ -240,7 +241,7 @@ public class OverlayService extends Service {
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                 dp(140), WindowManager.LayoutParams.WRAP_CONTENT,
                 overlayType(),
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT
         );
         lp.gravity = Gravity.TOP | Gravity.START;
@@ -249,8 +250,9 @@ public class OverlayService extends Service {
 
         menuView = menu;
         windowManager.addView(menuView, lp);
+        Toast.makeText(getApplicationContext(), "打开密码本 / 退出悬浮球", Toast.LENGTH_SHORT).show();
 
-        handler.postDelayed(hideMenuRunnable, 5000);
+        handler.postDelayed(hideMenuRunnable, 8000);
     }
 
     private Button createMenuButton(String text) {
@@ -281,6 +283,11 @@ public class OverlayService extends Service {
             @Override
             public void onChange(boolean selfChange) {
                 checkLatestScreenshot(null);
+            }
+
+            @Override
+            public void onChange(boolean selfChange, Uri uri) {
+                checkLatestScreenshot(uri);
             }
         };
         getContentResolver().registerContentObserver(
@@ -364,10 +371,20 @@ public class OverlayService extends Service {
 
     private boolean isScreenshot(String name, String relativePath, String dataPath) {
         String combined = (name + " " + relativePath + " " + dataPath).toLowerCase(Locale.ROOT);
-        return combined.contains("screenshot") || combined.contains("screen_shot")
+        if (combined.contains("screenshot") || combined.contains("screen_shot")
                 || combined.contains("screencapture") || combined.contains("screenshots")
                 || combined.contains("截屏") || combined.contains("截图")
-                || combined.contains("screen-capture") || combined.contains("captures");
+                || combined.contains("screen-capture") || combined.contains("captures")
+                || combined.contains("screenrecorder") || combined.contains("screen_recorder")
+                || combined.contains("longshot") || combined.contains("screen cap")) {
+            return true;
+        }
+        String lowerName = name.toLowerCase(Locale.ROOT);
+        return lowerName.startsWith("screenshot")
+                || lowerName.startsWith("scr_")
+                || lowerName.startsWith("screen-")
+                || name.contains("截屏")
+                || name.contains("截图");
     }
 
     private void showSavePrompt(Uri uri) {

@@ -24,13 +24,17 @@ public class MainActivity extends BridgeActivity {
         if (ScreenshotStore.isOverlayEnabled(this)) {
             OverlayService.sendAction(this, OverlayService.ACTION_HIDE_BUBBLE);
         }
-        notifyWebScreenshotSaved();
+        notifyWeb();
     }
 
-    private void notifyWebScreenshotSaved() {
+    private void notifyWeb() {
         if (getBridge() == null || getBridge().getWebView() == null) return;
-        if (ScreenshotStore.getPendingCount(this) <= 0) return;
+        boolean enabled = ScreenshotStore.isOverlayEnabled(this);
         getBridge().getWebView().evaluateJavascript(
-                "window.dispatchEvent(new CustomEvent('vault-screenshot-saved'))", null);
+                "window.dispatchEvent(new CustomEvent('vault-overlay-changed',{detail:{enabled:" + enabled + "}}))", null);
+        if (ScreenshotStore.getPendingCount(this) > 0) {
+            getBridge().getWebView().evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('vault-screenshot-saved'))", null);
+        }
     }
 }
