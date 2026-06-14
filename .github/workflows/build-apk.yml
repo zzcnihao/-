@@ -11,9 +11,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: password-vault-app
 
     steps:
       - name: Checkout
@@ -35,18 +32,29 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          yes | sdkmanager --licenses
+
       - name: Install dependencies
+        working-directory: password-vault-app
         run: npm ci
 
       - name: Sync Capacitor
+        working-directory: password-vault-app
         run: npx cap sync android
 
       - name: Build debug APK
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+        working-directory: password-vault-app/android
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: 密码本-apk
+          name: password-vault-apk
           path: password-vault-app/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
