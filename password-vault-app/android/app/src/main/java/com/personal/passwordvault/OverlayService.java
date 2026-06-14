@@ -282,19 +282,9 @@ public class OverlayService extends Service {
             public void onChange(boolean selfChange) {
                 checkLatestScreenshot(null);
             }
-
-            @Override
-            public void onChange(boolean selfChange, Uri uri) {
-                checkLatestScreenshot(uri);
-            }
         };
         getContentResolver().registerContentObserver(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI, true, screenshotObserver);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            getContentResolver().registerContentObserver(
-                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
-                    true, screenshotObserver);
-        }
     }
 
     private void checkLatestScreenshot(Uri directUri) {
