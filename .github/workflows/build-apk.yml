@@ -41,9 +41,28 @@ jobs:
         working-directory: password-vault-app
         run: npm ci
 
-      - name: Sync Capacitor
+      - name: Prepare Android web assets
         working-directory: password-vault-app
-        run: npx cap sync android
+        run: |
+          mkdir -p android/app/src/main/assets/public
+          cp -r www/. android/app/src/main/assets/public/
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const cfg = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
+          const assetsDir = 'android/app/src/main/assets';
+          const xmlDir = 'android/app/src/main/res/xml';
+          fs.mkdirSync(assetsDir, { recursive: true });
+          fs.mkdirSync(xmlDir, { recursive: true });
+          fs.writeFileSync(path.join(assetsDir, 'capacitor.config.json'), JSON.stringify(cfg, null, '\t'));
+          fs.writeFileSync(path.join(assetsDir, 'capacitor.plugins.json'), '[]');
+          fs.writeFileSync(path.join(xmlDir, 'config.xml'), `<?xml version='1.0' encoding='utf-8'?>
+          <widget version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+            <access origin="*" />
+          </widget>
+          `);
+          console.log('Web assets prepared.');
+          EOF
 
       - name: Build debug APK
         working-directory: password-vault-app/android
