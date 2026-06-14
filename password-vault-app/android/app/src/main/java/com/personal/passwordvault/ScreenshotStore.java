@@ -84,4 +84,19 @@ public class ScreenshotStore {
     public static void setOverlayEnabled(Context ctx, boolean enabled) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("overlay_enabled", enabled).apply();
     }
+
+    public static void saveBubblePosition(Context ctx, int x, int y) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putInt("bubble_x", x).putInt("bubble_y", y).apply();
+    }
+
+    public static int getBubbleX(Context ctx, int def) {
+        SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        return prefs.contains("bubble_x") ? prefs.getInt("bubble_x", def) : def;
+    }
+
+    public static int getBubbleY(Context ctx, int def) {
+        SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        return prefs.contains("bubble_y") ? prefs.getInt("bubble_y", def) : def;
+    }
 }

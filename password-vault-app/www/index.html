@@ -425,7 +425,7 @@
   <div id="settings-view" class="settings-panel">
     <div class="settings-section" id="native-settings" style="display:none">
       <div class="settings-item" id="overlay-toggle-item">
-        <div><div>后台悬浮球</div><div class="sub">切到后台显示圆标；截图后点确定保存到「截图」页</div></div>
+        <div><div>后台悬浮球</div><div class="sub">切到后台显示圆标；截屏后点确定保存（需相册权限）</div></div>
         <div class="toggle-switch" id="overlay-toggle"></div>
       </div>
       <div class="settings-item" id="overlay-perm-btn">
@@ -602,6 +602,7 @@ async function syncPendingScreenshots() {
     toast(`已保存 ${items.length} 张截图到记事本`);
   } catch (e) {
     console.error('sync screenshots', e);
+    toast('截图同步失败，请稍后在「截图」页重试');
   }
 }
 
@@ -613,7 +614,7 @@ function renderShots() {
   const list = getShots().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   const container = document.getElementById('shots-list');
   if (!list.length) {
-    container.innerHTML = `<div class="empty-state"><div class="emoji">📸</div><p>暂无截图<br>开启「后台悬浮球」后，截图时可保存到这里</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="emoji">📸</div><p>暂无截图<br>开启悬浮球后截屏并点「确定」保存<br>保存后需打开密码本解锁，在「截图」页查看</p></div>`;
     return;
   }
   container.innerHTML = `<div class="shot-grid">${list.map(e => `

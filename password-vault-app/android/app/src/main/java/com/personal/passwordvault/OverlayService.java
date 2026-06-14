@@ -1,5 +1,6 @@
 package com.personal.passwordvault;
 
+import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -7,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
@@ -29,6 +31,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import java.util.Locale;
 
 public class OverlayService extends Service {
@@ -45,6 +48,7 @@ public class OverlayService extends Service {
     private ContentObserver screenshotObserver;
     private long lastShotTime = 0;
     private String lastShotKey = "";
+    private long lastPermToast = 0;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable hideMenuRunnable = this::removeBubbleMenuOnly;
 
@@ -90,8 +94,17 @@ public class OverlayService extends Service {
             exitBubbleMode();
         } else {
             showBubble();
+            ensureBubbleVisible();
         }
         return START_STICKY;
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        if (ScreenshotStore.isOverlayEnabled(this)) {
+            OverlayService.start(getApplicationContext(), true);
+        }
+        super.onTaskRemoved(rootIntent);
     }
 
     @Override
@@ -157,8 +170,8 @@ public class OverlayService extends Service {
                 PixelFormat.TRANSLUCENT
         );
         bubbleLayoutParams.gravity = Gravity.TOP | Gravity.START;
-        bubbleLayoutParams.x = dp(16);
-        bubbleLayoutParams.y = dp(120);
+        bubbleLayoutParams.x = ScreenshotStore.getBubbleX(this, dp(16));
+        bubbleLayoutParams.y = ScreenshotStore.getBubbleY(this, dp(120));
 
         tv.setOnTouchListener(new BubbleTouchListener(tv, bubbleLayoutParams));
         bubbleView = tv;
@@ -170,6 +183,12 @@ public class OverlayService extends Service {
             windowManager.removeView(bubbleView);
             bubbleView = null;
         }
+    }
+
+    private void ensureBubbleVisible() {
+        if (!ScreenshotStore.isOverlayEnabled(this)) return;
+        if (!android.provider.Settings.canDrawOverlays(this)) return;
+        if (bubbleView == null) showBubble();
     }
 
     private class BubbleTouchListener implements View.OnTouchListener {
@@ -204,6 +223,7 @@ public class OverlayService extends Service {
                     windowManager.updateViewLayout(bubble, lp);
                     return true;
                 case MotionEvent.ACTION_UP:
+                    ScreenshotStore.saveBubblePosition(OverlayService.this, lp.x, lp.y);
                     if (!moved) showBubbleMenu(lp);
                     return true;
                 default:
@@ -297,21 +317,28 @@ public class OverlayService extends Service {
     private void checkLatestScreenshot(Uri directUri) {
         handler.postDelayed(() -> {
             try {
+                if (!hasMediaPermission()) {
+                    maybeShowPermToast();
+                    return;
+                }
                 if (directUri != null) {
                     inspectUri(directUri);
                     return;
                 }
+                long sinceSec = (System.currentTimeMillis() / 1000L) - 60L;
+                String selection = MediaStore.Images.Media.DATE_ADDED + " >= ?";
+                String[] args = { String.valueOf(sinceSec) };
                 String order = MediaStore.Images.Media.DATE_ADDED + " DESC";
                 String[] proj = buildProjection();
                 try (Cursor c = getContentResolver().query(
                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        proj, null, null, order)) {
+                        proj, selection, args, order)) {
                     if (c == null || !c.moveToFirst()) return;
                     Uri uri = ContentUriHelper.getUri(c);
                     inspectRow(c, uri);
                 }
             } catch (Exception ignored) {}
-        }, 600);
+        }, 900);
     }
 
     private void inspectUri(Uri uri) {
@@ -326,17 +353,23 @@ public class OverlayService extends Service {
         String displayName = getColumn(c, MediaStore.Images.Media.DISPLAY_NAME);
         String relativePath = getColumn(c, MediaStore.Images.Media.RELATIVE_PATH);
         String dataPath = getColumn(c, MediaStore.Images.Media.DATA);
+        String bucket = getColumn(c, MediaStore.Images.Media.BUCKET_DISPLAY_NAME);
         long addedSec = 0;
+        long modifiedSec = 0;
         int dateIdx = c.getColumnIndex(MediaStore.Images.Media.DATE_ADDED);
         if (dateIdx >= 0) addedSec = c.getLong(dateIdx);
+        int modIdx = c.getColumnIndex(MediaStore.Images.Media.DATE_MODIFIED);
+        if (modIdx >= 0) modifiedSec = c.getLong(modIdx);
 
         long addedMs = addedSec > 0 ? addedSec * 1000L : System.currentTimeMillis();
-        if (System.currentTimeMillis() - addedMs > 20000) return;
+        long modifiedMs = modifiedSec > 0 ? modifiedSec * 1000L : addedMs;
+        long imageMs = Math.max(addedMs, modifiedMs);
+        if (System.currentTimeMillis() - imageMs > 45000) return;
 
         String key = uri != null ? uri.toString() : (displayName + addedSec);
         if (key.equals(lastShotKey)) return;
-        if (!isScreenshot(displayName, relativePath, dataPath)) return;
-        if (System.currentTimeMillis() - lastShotTime < 1500) return;
+        if (!isScreenshot(displayName, relativePath, dataPath, bucket)) return;
+        if (System.currentTimeMillis() - lastShotTime < 1200) return;
 
         lastShotTime = System.currentTimeMillis();
         lastShotKey = key;
@@ -350,14 +383,18 @@ public class OverlayService extends Service {
                     MediaStore.Images.Media._ID,
                     MediaStore.Images.Media.DISPLAY_NAME,
                     MediaStore.Images.Media.RELATIVE_PATH,
+                    MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
                     MediaStore.Images.Media.DATE_ADDED,
+                    MediaStore.Images.Media.DATE_MODIFIED,
                     MediaStore.Images.Media.DATA
             };
         }
         return new String[]{
                 MediaStore.Images.Media._ID,
                 MediaStore.Images.Media.DISPLAY_NAME,
+                MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
                 MediaStore.Images.Media.DATE_ADDED,
+                MediaStore.Images.Media.DATE_MODIFIED,
                 MediaStore.Images.Media.DATA
         };
     }
@@ -369,22 +406,48 @@ public class OverlayService extends Service {
         return v == null ? "" : v;
     }
 
-    private boolean isScreenshot(String name, String relativePath, String dataPath) {
-        String combined = (name + " " + relativePath + " " + dataPath).toLowerCase(Locale.ROOT);
+    private boolean isScreenshot(String name, String relativePath, String dataPath, String bucket) {
+        String combined = (name + " " + relativePath + " " + dataPath + " " + bucket).toLowerCase(Locale.ROOT);
         if (combined.contains("screenshot") || combined.contains("screen_shot")
                 || combined.contains("screencapture") || combined.contains("screenshots")
-                || combined.contains("截屏") || combined.contains("截图")
+                || combined.contains("截屏") || combined.contains("截图") || combined.contains("屏幕截图")
                 || combined.contains("screen-capture") || combined.contains("captures")
                 || combined.contains("screenrecorder") || combined.contains("screen_recorder")
-                || combined.contains("longshot") || combined.contains("screen cap")) {
+                || combined.contains("longshot") || combined.contains("screen cap")
+                || combined.contains("screenrecord") || combined.contains("smartshot")) {
             return true;
         }
         String lowerName = name.toLowerCase(Locale.ROOT);
-        return lowerName.startsWith("screenshot")
+        if (lowerName.startsWith("screenshot")
                 || lowerName.startsWith("scr_")
                 || lowerName.startsWith("screen-")
                 || name.contains("截屏")
-                || name.contains("截图");
+                || name.contains("截图")) {
+            return true;
+        }
+        String pathOnly = (relativePath + " " + dataPath).toLowerCase(Locale.ROOT);
+        return pathOnly.contains("/screenshots")
+                || pathOnly.contains("\\screenshots")
+                || pathOnly.contains("screen_shot")
+                || pathOnly.contains("screencapture")
+                || pathOnly.contains("截屏")
+                || pathOnly.contains("截图");
+    }
+
+    private boolean hasMediaPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void maybeShowPermToast() {
+        long now = System.currentTimeMillis();
+        if (now - lastPermToast < 15000) return;
+        lastPermToast = now;
+        Toast.makeText(getApplicationContext(), "请在密码本设置中允许读取相册，否则无法识别截图", Toast.LENGTH_LONG).show();
     }
 
     private void showSavePrompt(Uri uri) {
@@ -427,7 +490,10 @@ public class OverlayService extends Service {
             Button cancel = new Button(this);
             cancel.setText("取消");
             cancel.setAllCaps(false);
-            cancel.setOnClickListener(v -> removePrompt());
+            cancel.setOnClickListener(v -> {
+                removePrompt();
+                ensureBubbleVisible();
+            });
 
             Uri shotUri = uri;
             Button ok = new Button(this);
@@ -443,7 +509,9 @@ public class OverlayService extends Service {
             WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
                     dp(280), WindowManager.LayoutParams.WRAP_CONTENT,
                     overlayType(),
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_DIM_BEHIND,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                            | WindowManager.LayoutParams.FLAG_DIM_BEHIND
+                            | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                     PixelFormat.TRANSLUCENT
             );
             lp.gravity = Gravity.CENTER;
@@ -458,10 +526,12 @@ public class OverlayService extends Service {
             String saved = ScreenshotStore.copyToVault(this, uri);
             ScreenshotStore.addPending(this, saved, System.currentTimeMillis());
             removePrompt();
+            ensureBubbleVisible();
             Toast.makeText(getApplicationContext(), "截图已保存，打开密码本可在「截图」页查看", Toast.LENGTH_LONG).show();
             showSavedNotification();
         } catch (Exception e) {
             removePrompt();
+            ensureBubbleVisible();
             Toast.makeText(getApplicationContext(), "保存失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
@@ -491,6 +561,7 @@ public class OverlayService extends Service {
             windowManager.removeView(promptView);
             promptView = null;
         }
+        handler.postDelayed(this::ensureBubbleVisible, 200);
     }
 
     private int overlayType() {

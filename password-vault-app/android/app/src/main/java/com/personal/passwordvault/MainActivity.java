@@ -1,9 +1,14 @@
 package com.personal.passwordvault;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private final Handler bubbleHandler = new Handler(Looper.getMainLooper());
+    private Runnable showBubbleRunnable;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(VaultNativePlugin.class);
@@ -11,19 +16,27 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
-        if (ScreenshotStore.isOverlayEnabled(this) && android.provider.Settings.canDrawOverlays(this)) {
-            OverlayService.start(this, true);
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (!ScreenshotStore.isOverlayEnabled(this)) return;
+        if (!android.provider.Settings.canDrawOverlays(this)) return;
+
+        if (showBubbleRunnable != null) {
+            bubbleHandler.removeCallbacks(showBubbleRunnable);
+            showBubbleRunnable = null;
+        }
+
+        if (hasFocus) {
+            OverlayService.sendAction(this, OverlayService.ACTION_HIDE_BUBBLE);
+        } else {
+            showBubbleRunnable = () -> OverlayService.start(this, true);
+            bubbleHandler.postDelayed(showBubbleRunnable, 400);
         }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (ScreenshotStore.isOverlayEnabled(this)) {
-            OverlayService.sendAction(this, OverlayService.ACTION_HIDE_BUBBLE);
-        }
         notifyWeb();
     }
 
