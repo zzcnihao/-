@@ -11,7 +11,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
         super.onPause();
         if (ScreenshotStore.isOverlayEnabled(this) && android.provider.Settings.canDrawOverlays(this)) {
             OverlayService.start(this, true);
@@ -19,7 +19,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         if (ScreenshotStore.isOverlayEnabled(this)) {
             OverlayService.sendAction(this, OverlayService.ACTION_HIDE_BUBBLE);
