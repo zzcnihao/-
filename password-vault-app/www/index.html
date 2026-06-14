@@ -3,28 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#1a1a2e">
+  <meta name="theme-color" content="#1C1F27">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="密码本">
-  <title>密码本 - 个人账号记事</title>
+  <meta name="apple-mobile-web-app-title" content="密拾">
+  <title>密拾·截屏密码管家</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
   <style>
     :root {
-      --bg: #0f0f1a;
-      --surface: #1a1a2e;
-      --surface2: #252542;
-      --border: rgba(255,255,255,0.08);
-      --text: #eaeaf0;
-      --muted: #8888a0;
-      --accent: #6c63ff;
-      --accent2: #8b83ff;
-      --danger: #ff4757;
-      --success: #2ed573;
-      --radius: 14px;
+      --bg: #1C1F27;
+      --bg-soft: #252932;
+      --surface: rgba(255,255,255,0.06);
+      --surface2: rgba(255,255,255,0.10);
+      --glass: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.10);
+      --text: #F5F7FB;
+      --text-secondary: #868A93;
+      --accent: #2D5CF0;
+      --accent-soft: rgba(45,92,240,0.18);
+      --accent-glow: rgba(45,92,240,0.35);
+      --danger: #FF7A50;
+      --danger-soft: rgba(255,122,80,0.15);
+      --success: #34C759;
+      --radius: 16px;
+      --radius-lg: 20px;
+      --shadow: 0 8px 32px rgba(0,0,0,0.22);
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --muted: var(--text-secondary);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -45,18 +52,24 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
-      background: radial-gradient(ellipse at 50% 0%, #252542 0%, var(--bg) 60%);
+      background:
+        radial-gradient(ellipse at 50% -10%, rgba(45,92,240,0.25) 0%, transparent 55%),
+        linear-gradient(180deg, #252932 0%, var(--bg) 100%);
     }
 
     .lock-logo {
-      width: 72px; height: 72px;
-      background: linear-gradient(135deg, var(--accent), #a29bfe);
-      border-radius: 20px;
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, var(--accent), #5B7FFF);
+      border-radius: var(--radius-lg);
       display: flex; align-items: center; justify-content: center;
-      font-size: 36px;
+      font-size: 38px;
       margin-bottom: 20px;
-      box-shadow: 0 8px 32px rgba(108,99,255,0.35);
+      box-shadow: 0 12px 40px var(--accent-glow);
+      border: 1px solid rgba(255,255,255,0.12);
     }
+
+    .brand-name { font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
+    .brand-sub { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
 
     #lock-screen h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
     #lock-screen p { color: var(--muted); font-size: 14px; margin-bottom: 32px; text-align: center; }
@@ -69,7 +82,7 @@
       border: 2px solid var(--muted);
       transition: all 0.15s;
     }
-    .pin-dots span.filled { background: var(--accent); border-color: var(--accent); }
+    .pin-dots span.filled { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
 
     .pin-pad {
       display: grid; grid-template-columns: repeat(3, 72px);
@@ -78,13 +91,15 @@
     .pin-pad button {
       width: 72px; height: 72px;
       border: none; border-radius: 50%;
-      background: var(--surface2);
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
       color: var(--text);
       font-size: 24px; font-weight: 500;
       cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
+      transition: background 0.15s, transform 0.12s;
     }
-    .pin-pad button:active { transform: scale(0.92); background: var(--accent); }
+    .pin-pad button:active { transform: scale(0.94); background: var(--accent); border-color: var(--accent); }
     .pin-pad .pin-action { font-size: 14px; color: var(--muted); }
 
     .lock-error { color: var(--danger); font-size: 13px; height: 20px; margin-top: 12px; }
@@ -125,24 +140,24 @@
       transition: transform 0.1s, opacity 0.15s;
     }
     .btn:active { transform: scale(0.97); }
-    .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #4A6CF7); color: #fff; width: 100%; box-shadow: 0 8px 24px var(--accent-glow); }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-ghost { background: transparent; color: var(--muted); font-size: 14px; padding: 10px; }
 
     .warn-box {
-      background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.25);
+      background: var(--danger-soft); border: 1px solid rgba(255,122,80,0.25);
       border-radius: var(--radius); padding: 14px; font-size: 13px;
-      color: #ff8a94; line-height: 1.5; margin-bottom: 20px;
+      color: #FFB199; line-height: 1.5; margin-bottom: 20px;
     }
 
     /* ── Main App ── */
-    #app-screen { padding-bottom: calc(70px + var(--safe-bottom)); }
+    #app-screen { padding-bottom: calc(76px + var(--safe-bottom)); }
 
     .app-header {
       position: sticky; top: 0; z-index: 20;
       padding: calc(var(--safe-top) + 12px) 16px 12px;
-      background: rgba(15,15,26,0.92);
-      backdrop-filter: blur(12px);
+      background: rgba(28,31,39,0.88);
+      backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
     }
     .app-header-top {
@@ -185,11 +200,16 @@
 
     .entry-list { padding: 0 16px 16px; flex: 1; }
     .entry-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
-      cursor: pointer; transition: border-color 0.15s;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px; margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+      box-shadow: var(--shadow);
     }
-    .entry-card:active { border-color: var(--accent); }
+    .entry-card:active { border-color: var(--accent); transform: scale(0.985); }
     .entry-card-top {
       display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
     }
@@ -209,8 +229,8 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .entry-tag {
-      font-size: 11px; padding: 3px 8px; border-radius: 6px;
-      background: rgba(108,99,255,0.15); color: var(--accent2);
+      font-size: 11px; padding: 4px 10px; border-radius: 999px;
+      background: var(--accent-soft); color: #8EB0FF;
     }
     .entry-actions {
       display: flex; gap: 8px; margin-top: 4px;
@@ -229,28 +249,33 @@
     .empty-state p { font-size: 14px; line-height: 1.6; }
 
     .fab {
-      position: fixed; bottom: calc(80px + var(--safe-bottom)); right: 20px;
+      position: fixed; bottom: calc(86px + var(--safe-bottom)); right: 20px;
       width: 56px; height: 56px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), #a29bfe);
+      background: linear-gradient(135deg, var(--accent), #4A6CF7);
       border: none; color: #fff; font-size: 28px;
-      box-shadow: 0 4px 20px rgba(108,99,255,0.45);
+      box-shadow: 0 8px 28px var(--accent-glow);
       cursor: pointer; z-index: 15;
       display: flex; align-items: center; justify-content: center;
+      transition: transform 0.12s;
     }
     .fab:active { transform: scale(0.92); }
 
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0;
-      display: flex; background: var(--surface);
+      display: flex;
+      background: rgba(28,31,39,0.92);
+      backdrop-filter: blur(20px);
       border-top: 1px solid var(--border);
       padding-bottom: var(--safe-bottom); z-index: 20;
     }
     .nav-item {
       flex: 1; display: flex; flex-direction: column; align-items: center;
-      gap: 4px; padding: 10px 0; border: none; background: none;
-      color: var(--muted); font-size: 11px; cursor: pointer;
+      gap: 3px; padding: 8px 0 10px; border: none; background: none;
+      color: var(--text-secondary); font-size: 10px; cursor: pointer;
+      transition: color 0.15s, transform 0.12s;
     }
-    .nav-item .nav-icon { font-size: 22px; }
+    .nav-item:active { transform: scale(0.95); }
+    .nav-item .nav-icon { font-size: 20px; }
     .nav-item.active { color: var(--accent); }
 
     /* ── Modal ── */
@@ -261,7 +286,10 @@
     .modal-overlay.open { display: flex; }
     .modal {
       width: 100%; max-height: 92dvh;
-      background: var(--surface); border-radius: 20px 20px 0 0;
+      background: rgba(37,41,50,0.98);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
       padding: 20px 20px calc(20px + var(--safe-bottom));
       overflow-y: auto;
       animation: slideUp 0.25s ease;
@@ -282,7 +310,7 @@
 
     .modal-footer { display: flex; gap: 10px; margin-top: 20px; }
     .modal-footer .btn { flex: 1; }
-    .btn-danger { background: rgba(255,71,87,0.15); color: var(--danger); }
+    .btn-danger { background: var(--danger-soft); color: var(--danger); }
 
     .gen-row {
       display: flex; gap: 8px; align-items: center;
@@ -323,13 +351,157 @@
     }
     .toggle-switch.on::after { transform: translateX(20px); }
 
-    .shot-grid { padding: 0 16px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .shot-grid { padding: 0 16px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .shot-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); overflow: hidden;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: transform 0.12s, border-color 0.15s;
+      position: relative;
     }
+    .shot-card:active { transform: scale(0.98); }
+    .shot-card.pressing { transform: scale(0.96); border-color: var(--accent); }
     .shot-card img { width: 100%; aspect-ratio: 9/16; object-fit: cover; display: block; background: #000; }
-    .shot-card .shot-meta { padding: 10px; font-size: 12px; color: var(--muted); }
+    .shot-card .shot-meta {
+      padding: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .shot-card .shot-meta strong {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .shot-tag-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #8EB0FF;
+      font-size: 10px;
+    }
+
+    .dashboard { padding: 16px; }
+    .dash-hero {
+      background: linear-gradient(135deg, rgba(45,92,240,0.22), rgba(45,92,240,0.06));
+      border: 1px solid rgba(45,92,240,0.25);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(16px);
+    }
+    .dash-hero h2 { font-size: 15px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px; }
+    .dash-hero .dash-num { font-size: 36px; font-weight: 700; color: var(--text); }
+    .dash-hero .dash-num span { font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-left: 6px; }
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .dash-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      backdrop-filter: blur(12px);
+    }
+    .dash-card .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+    .dash-card .value { font-size: 22px; font-weight: 700; }
+    .dash-card .hint { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+    .section-title {
+      padding: 0 16px 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .shots-toolbar {
+      padding: 0 16px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .shots-toolbar .hint-text { font-size: 12px; color: var(--text-secondary); }
+    .shot-tag-tabs {
+      display: flex; gap: 8px; padding: 0 16px 12px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .shot-tag-tabs::-webkit-scrollbar { display: none; }
+
+    .action-sheet-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 80; display: none; align-items: flex-end;
+      backdrop-filter: blur(4px);
+    }
+    .action-sheet-overlay.open { display: flex; }
+    .action-sheet {
+      width: 100%;
+      background: rgba(37,41,50,0.96);
+      backdrop-filter: blur(24px);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 12px 16px calc(16px + var(--safe-bottom));
+      animation: slideUp 0.25s ease;
+    }
+    .action-sheet-title {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+      padding: 8px 0 12px;
+    }
+    .action-item {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--glass);
+      color: var(--text);
+      font-size: 15px;
+      text-align: center;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: transform 0.12s, background 0.15s;
+    }
+    .action-item:active { transform: scale(0.98); background: var(--surface2); }
+    .action-item.danger { color: var(--danger); background: var(--danger-soft); }
+    .action-item.cancel { background: transparent; color: var(--text-secondary); margin-top: 4px; }
+
+    .confirm-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      z-index: 90; display: none; align-items: center; justify-content: center;
+      padding: 24px;
+      backdrop-filter: blur(6px);
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box {
+      width: 100%; max-width: 320px;
+      background: rgba(37,41,50,0.98);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px 20px 16px;
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow);
+    }
+    .confirm-box h3 { font-size: 18px; margin-bottom: 10px; text-align: center; }
+    .confirm-box p { font-size: 14px; color: var(--text-secondary); text-align: center; line-height: 1.6; margin-bottom: 20px; }
+    .confirm-actions { display: flex; gap: 10px; }
+    .confirm-actions .btn { flex: 1; padding: 12px; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
 
     .toast {
       position: fixed; bottom: calc(90px + var(--safe-bottom)); left: 50%;
@@ -364,8 +536,9 @@
 <!-- 首次设置 -->
 <div id="setup-screen" class="screen">
   <div class="lock-logo">🔐</div>
-  <h1>欢迎使用密码本</h1>
-  <p class="desc">设置一个 4～6 位数字 PIN 码，用于解锁应用。你的账号密码将加密保存在本机，不会上传到任何服务器。</p>
+  <h1 class="brand-name">密拾</h1>
+  <p class="brand-sub">截屏密码管家 · 安全收录每一张密码截图</p>
+  <p class="desc">设置一个 4～6 位数字 PIN 码，用于解锁应用。你的账号密码将 AES 加密保存在本机，不会上传到任何服务器。</p>
   <div class="warn-box">⚠️ 请务必记住 PIN 码！忘记 PIN 将无法恢复已保存的数据。</div>
   <div class="form-group">
     <label>设置 PIN 码（4～6 位数字）</label>
@@ -381,7 +554,8 @@
 <!-- 解锁 -->
 <div id="lock-screen" class="screen">
   <div class="lock-logo">🔐</div>
-  <h1>密码本</h1>
+  <h1 class="brand-name">密拾</h1>
+  <p class="brand-sub">截屏密码管家</p>
   <p>输入 PIN 码解锁</p>
   <div class="pin-dots" id="pin-dots">
     <span></span><span></span><span></span><span></span><span></span><span></span>
@@ -401,7 +575,7 @@
 <div id="app-screen" class="screen">
   <div class="app-header">
     <div class="app-header-top">
-      <h1 id="page-title">我的账号</h1>
+      <h1 id="page-title">密拾</h1>
       <div class="header-actions">
         <button class="icon-btn" id="lock-btn" title="锁定">🔒</button>
       </div>
@@ -413,12 +587,22 @@
   </div>
 
   <div id="home-view">
+    <div class="dashboard" id="dashboard"></div>
+    <div class="section-title">最近密码</div>
+    <div class="entry-list" id="home-recent-list"></div>
+  </div>
+
+  <div id="passwords-view" style="display:none">
     <div class="category-tabs" id="category-tabs"></div>
     <div class="entry-list" id="entry-list"></div>
     <button class="fab" id="add-btn" title="添加">+</button>
   </div>
 
   <div id="shots-view" style="display:none">
+    <div class="shots-toolbar">
+      <div class="hint-text">长按截图可删除 · 点击查看大图</div>
+    </div>
+    <div class="shot-tag-tabs" id="shot-tag-tabs"></div>
     <div class="entry-list" id="shots-list"></div>
   </div>
 
@@ -449,7 +633,7 @@
         <span>🔑</span>
       </div>
       <div class="settings-item" id="about-btn">
-        <div><div>关于</div><div class="sub">密码本 v1.0 · 数据仅存本机</div></div>
+        <div><div>关于</div><div class="sub">密拾 v2.1 · 数据仅存本机</div></div>
         <span>ℹ️</span>
       </div>
     </div>
@@ -462,8 +646,9 @@
   </div>
 
   <nav class="bottom-nav">
-    <button class="nav-item active" data-tab="home"><span class="nav-icon">📋</span>账号</button>
-    <button class="nav-item" data-tab="shots"><span class="nav-icon">📸</span>截图</button>
+    <button class="nav-item active" data-tab="home"><span class="nav-icon">🏠</span>首页</button>
+    <button class="nav-item" data-tab="shots"><span class="nav-icon">📸</span>截屏库</button>
+    <button class="nav-item" data-tab="passwords"><span class="nav-icon">🔑</span>密码库</button>
     <button class="nav-item" data-tab="settings"><span class="nav-icon">⚙️</span>设置</button>
   </nav>
 </div>
@@ -524,6 +709,7 @@
     </div>
     <div id="detail-body"></div>
     <div class="modal-footer">
+      <button class="btn btn-danger" id="detail-delete-btn" style="display:none">删除</button>
       <button class="btn btn-primary" id="detail-edit-btn">编辑</button>
     </div>
   </div>
@@ -531,20 +717,43 @@
 
 <input type="file" id="file-input" accept=".json,application/json">
 
+<div class="action-sheet-overlay" id="shot-action-sheet">
+  <div class="action-sheet">
+    <div class="action-sheet-title" id="action-sheet-title">截图操作</div>
+    <button class="action-item" id="action-view-shot">查看大图</button>
+    <button class="action-item danger" id="action-delete-shot">删除截图</button>
+    <button class="action-item cancel" id="action-cancel">取消</button>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirm-dialog">
+  <div class="confirm-box">
+    <h3 id="confirm-title">确认删除</h3>
+    <p id="confirm-message">删除后无法恢复，确定要删除这条截图吗？</p>
+    <div class="confirm-actions">
+      <button class="btn btn-outline" id="confirm-cancel">取消</button>
+      <button class="btn btn-primary" id="confirm-ok" style="background:var(--danger);box-shadow:0 8px 24px rgba(255,122,80,0.35)">删除</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 const STORAGE_KEY = 'vault_v1';
 const CATEGORIES = ['全部', '社交', '工作', '游戏', '金融', '购物', '其他'];
 const CATEGORY_ICONS = { '社交': '💬', '工作': '💼', '游戏': '🎮', '金融': '💰', '购物': '🛒', '其他': '📌' };
+const SHOT_TAGS = ['全部', 'APP账号', '网站后台', '游戏密码', 'WiFi密码', '银行卡凭证', '其他'];
 
 let cryptoKey = null;
 let entries = [];
 let currentPin = '';
 let pinLength = 4;
 let activeCategory = '全部';
+let activeShotTag = '全部';
 let editingId = null;
 let detailEntryId = null;
+let actionShotId = null;
 let nativePlugin = null;
 let overlayEnabled = false;
 
@@ -591,6 +800,7 @@ async function syncPendingScreenshots() {
         type: 'screenshot',
         name: label,
         category: '截图',
+        shotTag: 'APP账号',
         imageData: data.base64,
         notes: '',
         updatedAt: Date.now()
@@ -598,8 +808,10 @@ async function syncPendingScreenshots() {
     }
     await saveVault();
     renderShots();
+    renderDashboard();
+    renderHomeRecent();
     renderEntries();
-    toast(`已保存 ${items.length} 张截图到记事本`);
+    toast(`已收录 ${items.length} 张截屏密码`);
   } catch (e) {
     console.error('sync screenshots', e);
     toast('截图同步失败，请稍后在「截图」页重试');
@@ -610,20 +822,163 @@ function getShots() {
   return entries.filter(e => e.type === 'screenshot' || e.imageData);
 }
 
+function formatShotTime(ts) {
+  const d = new Date(ts || Date.now());
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function isToday(ts) {
+  const d = new Date(ts || Date.now());
+  const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+
+function showConfirm(title, message, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-message').textContent = message;
+  document.getElementById('confirm-dialog').classList.add('open');
+  const okBtn = document.getElementById('confirm-ok');
+  const cancelBtn = document.getElementById('confirm-cancel');
+  const close = () => document.getElementById('confirm-dialog').classList.remove('open');
+  okBtn.onclick = () => { close(); onOk(); };
+  cancelBtn.onclick = close;
+}
+
+function bindLongPress(el, onLongPress, onTap) {
+  let timer = null;
+  let moved = false;
+  const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  const start = () => {
+    moved = false;
+    el.classList.add('pressing');
+    timer = setTimeout(() => {
+      timer = null;
+      el.classList.remove('pressing');
+      onLongPress();
+      if (navigator.vibrate) navigator.vibrate(35);
+    }, 520);
+  };
+  el.addEventListener('touchstart', start, { passive: true });
+  el.addEventListener('touchmove', () => { moved = true; clear(); el.classList.remove('pressing'); }, { passive: true });
+  el.addEventListener('touchend', () => { clear(); el.classList.remove('pressing'); });
+  el.addEventListener('touchcancel', () => { clear(); el.classList.remove('pressing'); });
+  el.addEventListener('mousedown', start);
+  el.addEventListener('mousemove', () => { if (timer) { moved = true; clear(); el.classList.remove('pressing'); } });
+  el.addEventListener('mouseup', () => { clear(); el.classList.remove('pressing'); });
+  el.addEventListener('mouseleave', () => { clear(); el.classList.remove('pressing'); });
+  el.addEventListener('click', e => { if (!moved) onTap(e); moved = false; });
+}
+
+function showShotActionSheet(id) {
+  actionShotId = id;
+  const e = entries.find(x => x.id === id);
+  document.getElementById('action-sheet-title').textContent = e?.name || '截图操作';
+  document.getElementById('shot-action-sheet').classList.add('open');
+}
+
+function closeActionSheet() {
+  document.getElementById('shot-action-sheet').classList.remove('open');
+  actionShotId = null;
+}
+
+async function deleteShot(id) {
+  entries = entries.filter(x => x.id !== id);
+  await saveVault();
+  renderShots();
+  renderDashboard();
+  renderHomeRecent();
+  toast('截图已删除');
+}
+
+function renderShotTags() {
+  const tabs = document.getElementById('shot-tag-tabs');
+  if (!tabs) return;
+  tabs.innerHTML = SHOT_TAGS.map(tag =>
+    `<button class="cat-tab${tag === activeShotTag ? ' active' : ''}" data-tag="${tag}">${tag}</button>`
+  ).join('');
+  tabs.querySelectorAll('.cat-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeShotTag = btn.dataset.tag;
+      renderShotTags();
+      renderShots();
+    });
+  });
+}
+
+function renderDashboard() {
+  const el = document.getElementById('dashboard');
+  if (!el) return;
+  const shots = getShots();
+  const todayCount = shots.filter(s => isToday(s.updatedAt)).length;
+  const pwdCount = entries.filter(e => e.type !== 'screenshot' && !e.imageData).length;
+  el.innerHTML = `
+    <div class="dash-hero">
+      <h2>今日截屏收录</h2>
+      <div class="dash-num">${todayCount}<span>张</span></div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="label">截屏密码库</div>
+        <div class="value">${shots.length}</div>
+        <div class="hint">自动收录的截图</div>
+      </div>
+      <div class="dash-card">
+        <div class="label">文本密码</div>
+        <div class="value">${pwdCount}</div>
+        <div class="hint">手动录入账号</div>
+      </div>
+    </div>`;
+}
+
+function renderHomeRecent() {
+  const container = document.getElementById('home-recent-list');
+  if (!container) return;
+  const list = entries.filter(e => e.type !== 'screenshot' && !e.imageData)
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 3);
+  if (!list.length) {
+    container.innerHTML = `<div class="empty-state"><div class="emoji">🔑</div><p>暂无文本密码<br>前往「密码库」添加账号</p></div>`;
+    return;
+  }
+  container.innerHTML = list.map(e => `
+    <div class="entry-card" data-id="${e.id}">
+      <div class="entry-card-top">
+        <div class="entry-icon">${CATEGORY_ICONS[e.category] || '📌'}</div>
+        <div class="entry-info">
+          <h3>${esc(e.name)}</h3>
+          <div class="account">${esc(e.account || '未设置账号')}</div>
+        </div>
+        <span class="entry-tag">${esc(e.category)}</span>
+      </div>
+    </div>`).join('');
+  container.querySelectorAll('.entry-card').forEach(card => {
+    card.addEventListener('click', () => openDetail(card.dataset.id));
+  });
+}
+
 function renderShots() {
-  const list = getShots().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  renderShotTags();
+  let list = getShots().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  if (activeShotTag !== '全部') list = list.filter(e => (e.shotTag || '其他') === activeShotTag);
   const container = document.getElementById('shots-list');
   if (!list.length) {
-    container.innerHTML = `<div class="empty-state"><div class="emoji">📸</div><p>暂无截图<br>开启悬浮球后截屏并点「确定」保存<br>保存后需打开密码本解锁，在「截图」页查看</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="emoji">📸</div><p>暂无截屏密码<br>开启悬浮球后截屏并点「确定」保存<br>保存后解锁 App，在「截屏库」查看</p></div>`;
     return;
   }
   container.innerHTML = `<div class="shot-grid">${list.map(e => `
     <div class="shot-card" data-id="${e.id}">
-      <img src="data:image/jpeg;base64,${e.imageData}" alt="">
-      <div class="shot-meta">${esc(e.name)}</div>
+      <img src="data:image/jpeg;base64,${e.imageData}" alt="" loading="lazy">
+      <div class="shot-meta">
+        <strong>${esc(e.name)}</strong>
+        ${formatShotTime(e.updatedAt)}
+        <span class="shot-tag-badge">${esc(e.shotTag || 'APP账号')}</span>
+      </div>
     </div>`).join('')}</div>`;
   container.querySelectorAll('.shot-card').forEach(card => {
-    card.addEventListener('click', () => openShotDetail(card.dataset.id));
+    bindLongPress(
+      card,
+      () => showShotActionSheet(card.dataset.id),
+      () => openShotDetail(card.dataset.id)
+    );
   });
 }
 
@@ -633,10 +988,18 @@ function openShotDetail(id) {
   detailEntryId = id;
   document.getElementById('detail-name').textContent = e.name;
   document.getElementById('detail-body').innerHTML = `
-    <img src="data:image/jpeg;base64,${e.imageData}" style="width:100%;border-radius:12px;margin-bottom:12px" alt="">
+    <img src="data:image/jpeg;base64,${e.imageData}" style="width:100%;border-radius:16px;margin-bottom:12px;box-shadow:var(--shadow)" alt="">
+    <div class="detail-row"><div><div class="detail-label">收录时间</div><div class="detail-value">${formatShotTime(e.updatedAt)}</div></div></div>
+    <div class="detail-row"><div><div class="detail-label">标签</div><div class="detail-value">${esc(e.shotTag || 'APP账号')}</div></div></div>
     ${e.notes ? `<div class="detail-row"><div><div class="detail-label">备注</div><div class="detail-value">${esc(e.notes)}</div></div></div>` : ''}
   `;
   document.getElementById('detail-edit-btn').style.display = 'none';
+  const delBtn = document.getElementById('detail-delete-btn');
+  delBtn.style.display = 'block';
+  delBtn.onclick = () => {
+    closeModals();
+    showConfirm('删除截图', '确定要删除这张截屏密码吗？删除后无法恢复。', () => deleteShot(id));
+  };
   document.getElementById('detail-modal').classList.add('open');
 }
 
@@ -876,6 +1239,7 @@ function openDetail(id) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
   document.getElementById('detail-edit-btn').style.display = 'block';
+  document.getElementById('detail-delete-btn').style.display = 'none';
   detailEntryId = id;
   document.getElementById('detail-name').textContent = e.name;
   document.getElementById('detail-body').innerHTML = `
@@ -968,6 +1332,8 @@ async function tryUnlock() {
   showScreen('app-screen');
   renderCategories();
   renderEntries();
+  renderDashboard();
+  renderHomeRecent();
   renderShots();
   syncPendingScreenshots();
 }
@@ -996,9 +1362,11 @@ function init() {
     showScreen('app-screen');
     renderCategories();
     renderEntries();
+    renderDashboard();
+    renderHomeRecent();
     renderShots();
     syncPendingScreenshots();
-    toast('设置完成，开始记录吧！');
+    toast('设置完成，欢迎使用密拾！');
   });
 
   // PIN pad
@@ -1083,14 +1451,35 @@ function init() {
       btn.classList.add('active');
       const tab = btn.dataset.tab;
       document.getElementById('home-view').style.display = tab === 'home' ? 'block' : 'none';
+      document.getElementById('passwords-view').style.display = tab === 'passwords' ? 'block' : 'none';
       document.getElementById('shots-view').style.display = tab === 'shots' ? 'block' : 'none';
       document.getElementById('settings-view').classList.toggle('active', tab === 'settings');
-      document.getElementById('search-wrap').style.display = tab === 'home' ? 'flex' : 'none';
-      document.getElementById('add-btn').style.display = tab === 'home' ? 'flex' : 'none';
-      const titles = { home: '我的账号', shots: '截图记事', settings: '设置' };
-      document.getElementById('page-title').textContent = titles[tab] || '密码本';
+      document.getElementById('search-wrap').style.display = tab === 'passwords' ? 'flex' : 'none';
+      document.getElementById('add-btn').style.display = tab === 'passwords' ? 'flex' : 'none';
+      const titles = { home: '密拾', shots: '截屏密码库', passwords: '文本密码库', settings: '设置' };
+      document.getElementById('page-title').textContent = titles[tab] || '密拾';
+      if (tab === 'home') { renderDashboard(); renderHomeRecent(); }
       if (tab === 'shots') renderShots();
+      if (tab === 'passwords') renderEntries();
     });
+  });
+
+  document.getElementById('action-view-shot').addEventListener('click', () => {
+    const id = actionShotId;
+    closeActionSheet();
+    if (id) openShotDetail(id);
+  });
+  document.getElementById('action-delete-shot').addEventListener('click', () => {
+    const id = actionShotId;
+    closeActionSheet();
+    if (id) showConfirm('删除截图', '确定要删除这张截屏密码吗？删除后无法恢复。', () => deleteShot(id));
+  });
+  document.getElementById('action-cancel').addEventListener('click', closeActionSheet);
+  document.getElementById('shot-action-sheet').addEventListener('click', e => {
+    if (e.target.id === 'shot-action-sheet') closeActionSheet();
+  });
+  document.getElementById('confirm-dialog').addEventListener('click', e => {
+    if (e.target.id === 'confirm-dialog') e.target.classList.remove('open');
   });
 
   document.getElementById('overlay-toggle-item').addEventListener('click', () => {
@@ -1172,7 +1561,7 @@ function init() {
   });
 
   document.getElementById('about-btn').addEventListener('click', () => {
-    alert('密码本 v2.0\n\n• 数据加密保存在本机\n• 支持后台悬浮球 + 截图保存\n• 需在设置中开启悬浮窗权限');
+    alert('密拾·截屏密码管家 v2.1\n\n• AES 加密本地存储\n• 悬浮球截屏自动收录\n• 长按截屏库可删除');
   });
 
   document.getElementById('clear-data-btn').addEventListener('click', async () => {

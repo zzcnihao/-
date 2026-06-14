@@ -1,12 +1,12 @@
 {
-  "name": "密码本 - 个人账号记事",
-  "short_name": "密码本",
-  "description": "安全记录各程序账号与密码，数据加密保存在本机",
+  "name": "密拾·截屏密码管家",
+  "short_name": "密拾",
+  "description": "悬浮球截屏收录密码截图，AES加密本地存储",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f0f1a",
-  "theme_color": "#1a1a2e",
+  "background_color": "#1C1F27",
+  "theme_color": "#2D5CF0",
   "lang": "zh-CN",
   "icons": [
     {
