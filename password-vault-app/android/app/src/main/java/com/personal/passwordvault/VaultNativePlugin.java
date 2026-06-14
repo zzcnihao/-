@@ -41,6 +41,13 @@ public class VaultNativePlugin extends Plugin {
     }
 
     @PluginMethod
+    public void getOverlayEnabled(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("enabled", ScreenshotStore.isOverlayEnabled(getContext()));
+        call.resolve(ret);
+    }
+
+    @PluginMethod
     public void openOverlaySettings(PluginCall call) {
         Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:" + getContext().getPackageName()));

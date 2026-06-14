@@ -2,6 +2,9 @@ package com.personal.passwordvault;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.File;
@@ -21,15 +24,32 @@ public class ScreenshotStore {
         return dir;
     }
 
-    public static String copyToVault(Context ctx, String sourcePath) throws Exception {
+    public static String copyToVault(Context ctx, Uri uri) throws Exception {
         File dest = new File(getShotDir(ctx), UUID.randomUUID().toString() + ".jpg");
-        try (InputStream in = new FileInputStream(sourcePath);
-             OutputStream out = new FileOutputStream(dest)) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        Bitmap bitmap = null;
+        try (InputStream in = ctx.getContentResolver().openInputStream(uri)) {
+            if (in == null) throw new Exception("无法读取截图");
+            bitmap = BitmapFactory.decodeStream(in);
+            if (bitmap == null) throw new Exception("截图解码失败");
+            int maxW = 1080;
+            if (bitmap.getWidth() > maxW) {
+                float scale = maxW / (float) bitmap.getWidth();
+                int nh = Math.round(bitmap.getHeight() * scale);
+                Bitmap scaled = Bitmap.createScaledBitmap(bitmap, maxW, nh, true);
+                bitmap.recycle();
+                bitmap = scaled;
+            }
+            try (FileOutputStream out = new FileOutputStream(dest)) {
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 82, out);
+            }
+        } finally {
+            if (bitmap != null) bitmap.recycle();
         }
         return dest.getAbsolutePath();
+    }
+
+    public static String copyToVault(Context ctx, String sourcePath) throws Exception {
+        return copyToVault(ctx, Uri.fromFile(new File(sourcePath)));
     }
 
     public static void addPending(Context ctx, String path, long time) throws Exception {
@@ -41,6 +61,14 @@ public class ScreenshotStore {
         obj.put("time", time);
         arr.put(obj);
         prefs.edit().putString(KEY_PENDING, arr.toString()).apply();
+    }
+
+    public static int getPendingCount(Context ctx) {
+        try {
+            return new JSONArray(getPendingJson(ctx)).length();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     public static String getPendingJson(Context ctx) {

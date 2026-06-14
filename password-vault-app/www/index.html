@@ -425,7 +425,7 @@
   <div id="settings-view" class="settings-panel">
     <div class="settings-section" id="native-settings" style="display:none">
       <div class="settings-item" id="overlay-toggle-item">
-        <div><div>后台悬浮球</div><div class="sub">App 在后台时显示小圆标，截图时可保存</div></div>
+        <div><div>后台悬浮球</div><div class="sub">切到后台显示圆标；截图后点确定保存到「截图」页</div></div>
         <div class="toggle-switch" id="overlay-toggle"></div>
       </div>
       <div class="settings-item" id="overlay-perm-btn">
@@ -553,6 +553,13 @@ function initNative() {
   if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins?.VaultNative) {
     nativePlugin = cap.Plugins.VaultNative;
     document.getElementById('native-settings').style.display = 'block';
+    nativePlugin.getOverlayEnabled().then(res => {
+      overlayEnabled = !!res.enabled;
+      document.getElementById('overlay-toggle').classList.toggle('on', overlayEnabled);
+    }).catch(() => {});
+    window.addEventListener('vault-screenshot-saved', () => {
+      if (cryptoKey) syncPendingScreenshots();
+    });
   }
 }
 
@@ -580,7 +587,9 @@ async function syncPendingScreenshots() {
     renderShots();
     renderEntries();
     toast(`已保存 ${items.length} 张截图到记事本`);
-  } catch (e) {}
+  } catch (e) {
+    console.error('sync screenshots', e);
+  }
 }
 
 function getShots() {
