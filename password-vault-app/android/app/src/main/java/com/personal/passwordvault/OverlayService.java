@@ -413,8 +413,10 @@ public class OverlayService extends Service {
             try {
                 preview.setImageURI(uri);
             } catch (Exception e) {
-                preview.setImageBitmap(BitmapFactory.decodeStream(
-                        getContentResolver().openInputStream(uri)));
+                try {
+                    java.io.InputStream in = getContentResolver().openInputStream(uri);
+                    if (in != null) preview.setImageBitmap(BitmapFactory.decodeStream(in));
+                } catch (Exception ignored) {}
             }
             root.addView(preview);
 
