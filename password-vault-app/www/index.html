@@ -310,6 +310,27 @@
     .settings-item .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
     .settings-item:active { background: var(--surface2); }
 
+    .toggle-switch {
+      width: 48px; height: 28px; border-radius: 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      position: relative; flex-shrink: 0;
+    }
+    .toggle-switch.on { background: var(--accent); border-color: var(--accent); }
+    .toggle-switch::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 20px; height: 20px; border-radius: 50%; background: #fff;
+      transition: transform 0.2s;
+    }
+    .toggle-switch.on::after { transform: translateX(20px); }
+
+    .shot-grid { padding: 0 16px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .shot-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .shot-card img { width: 100%; aspect-ratio: 9/16; object-fit: cover; display: block; background: #000; }
+    .shot-card .shot-meta { padding: 10px; font-size: 12px; color: var(--muted); }
+
     .toast {
       position: fixed; bottom: calc(90px + var(--safe-bottom)); left: 50%;
       transform: translateX(-50%) translateY(20px);
@@ -397,7 +418,21 @@
     <button class="fab" id="add-btn" title="添加">+</button>
   </div>
 
+  <div id="shots-view" style="display:none">
+    <div class="entry-list" id="shots-list"></div>
+  </div>
+
   <div id="settings-view" class="settings-panel">
+    <div class="settings-section" id="native-settings" style="display:none">
+      <div class="settings-item" id="overlay-toggle-item">
+        <div><div>后台悬浮球</div><div class="sub">App 在后台时显示小圆标，截图时可保存</div></div>
+        <div class="toggle-switch" id="overlay-toggle"></div>
+      </div>
+      <div class="settings-item" id="overlay-perm-btn">
+        <div><div>悬浮窗权限</div><div class="sub">点击前往系统设置开启</div></div>
+        <span>🔵</span>
+      </div>
+    </div>
     <div class="settings-section">
       <div class="settings-item" id="export-btn">
         <div><div>导出备份</div><div class="sub">将数据导出为 JSON 文件</div></div>
@@ -428,6 +463,7 @@
 
   <nav class="bottom-nav">
     <button class="nav-item active" data-tab="home"><span class="nav-icon">📋</span>账号</button>
+    <button class="nav-item" data-tab="shots"><span class="nav-icon">📸</span>截图</button>
     <button class="nav-item" data-tab="settings"><span class="nav-icon">⚙️</span>设置</button>
   </nav>
 </div>
@@ -509,6 +545,100 @@ let pinLength = 4;
 let activeCategory = '全部';
 let editingId = null;
 let detailEntryId = null;
+let nativePlugin = null;
+let overlayEnabled = false;
+
+function initNative() {
+  const cap = window.Capacitor;
+  if (cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins?.VaultNative) {
+    nativePlugin = cap.Plugins.VaultNative;
+    document.getElementById('native-settings').style.display = 'block';
+  }
+}
+
+async function syncPendingScreenshots() {
+  if (!nativePlugin || !cryptoKey) return;
+  try {
+    const res = await nativePlugin.getPendingScreenshots();
+    const items = JSON.parse(res.items || '[]');
+    if (!items.length) return;
+    for (const item of items) {
+      const data = await nativePlugin.consumeScreenshot({ id: item.id });
+      const d = new Date(data.time || Date.now());
+      const label = `截图 ${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      entries.unshift({
+        id: uid(),
+        type: 'screenshot',
+        name: label,
+        category: '截图',
+        imageData: data.base64,
+        notes: '',
+        updatedAt: Date.now()
+      });
+    }
+    await saveVault();
+    renderShots();
+    renderEntries();
+    toast(`已保存 ${items.length} 张截图到记事本`);
+  } catch (e) {}
+}
+
+function getShots() {
+  return entries.filter(e => e.type === 'screenshot' || e.imageData);
+}
+
+function renderShots() {
+  const list = getShots().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  const container = document.getElementById('shots-list');
+  if (!list.length) {
+    container.innerHTML = `<div class="empty-state"><div class="emoji">📸</div><p>暂无截图<br>开启「后台悬浮球」后，截图时可保存到这里</p></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="shot-grid">${list.map(e => `
+    <div class="shot-card" data-id="${e.id}">
+      <img src="data:image/jpeg;base64,${e.imageData}" alt="">
+      <div class="shot-meta">${esc(e.name)}</div>
+    </div>`).join('')}</div>`;
+  container.querySelectorAll('.shot-card').forEach(card => {
+    card.addEventListener('click', () => openShotDetail(card.dataset.id));
+  });
+}
+
+function openShotDetail(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e?.imageData) return;
+  detailEntryId = id;
+  document.getElementById('detail-name').textContent = e.name;
+  document.getElementById('detail-body').innerHTML = `
+    <img src="data:image/jpeg;base64,${e.imageData}" style="width:100%;border-radius:12px;margin-bottom:12px" alt="">
+    ${e.notes ? `<div class="detail-row"><div><div class="detail-label">备注</div><div class="detail-value">${esc(e.notes)}</div></div></div>` : ''}
+  `;
+  document.getElementById('detail-edit-btn').style.display = 'none';
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+async function setOverlayEnabledUI(enabled) {
+  overlayEnabled = enabled;
+  const toggle = document.getElementById('overlay-toggle');
+  toggle.classList.toggle('on', enabled);
+  if (!nativePlugin) return;
+  if (enabled) {
+    const perm = await nativePlugin.hasOverlayPermission();
+    if (!perm.granted) {
+      toast('请先开启悬浮窗权限');
+      nativePlugin.openOverlaySettings();
+      overlayEnabled = false;
+      toggle.classList.remove('on');
+      return;
+    }
+    await nativePlugin.requestMediaPermission();
+    await nativePlugin.setOverlayEnabled({ enabled: true });
+    toast('后台悬浮球已开启');
+  } else {
+    await nativePlugin.setOverlayEnabled({ enabled: false });
+    toast('已关闭后台悬浮球');
+  }
+}
 
 // ── Crypto ──
 async function deriveKey(pin, salt) {
@@ -626,6 +756,7 @@ function generatePassword(len = 16) {
 }
 
 function lockApp() {
+  if (nativePlugin) nativePlugin.stopOverlay().catch(() => {});
   cryptoKey = null;
   entries = [];
   currentPin = '';
@@ -651,7 +782,7 @@ function renderCategories() {
 
 function renderEntries() {
   const query = document.getElementById('search-input').value.trim().toLowerCase();
-  let list = entries;
+  let list = entries.filter(e => e.type !== 'screenshot' && !e.imageData);
   if (activeCategory !== '全部') list = list.filter(e => e.category === activeCategory);
   if (query) {
     list = list.filter(e =>
@@ -721,6 +852,7 @@ function esc(str) {
 function openDetail(id) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
+  document.getElementById('detail-edit-btn').style.display = 'block';
   detailEntryId = id;
   document.getElementById('detail-name').textContent = e.name;
   document.getElementById('detail-body').innerHTML = `
@@ -813,10 +945,13 @@ async function tryUnlock() {
   showScreen('app-screen');
   renderCategories();
   renderEntries();
+  renderShots();
+  syncPendingScreenshots();
 }
 
 // ── Init ──
 function init() {
+  initNative();
   const meta = getMeta();
 
   if (!meta) {
@@ -838,6 +973,8 @@ function init() {
     showScreen('app-screen');
     renderCategories();
     renderEntries();
+    renderShots();
+    syncPendingScreenshots();
     toast('设置完成，开始记录吧！');
   });
 
@@ -923,11 +1060,25 @@ function init() {
       btn.classList.add('active');
       const tab = btn.dataset.tab;
       document.getElementById('home-view').style.display = tab === 'home' ? 'block' : 'none';
+      document.getElementById('shots-view').style.display = tab === 'shots' ? 'block' : 'none';
       document.getElementById('settings-view').classList.toggle('active', tab === 'settings');
       document.getElementById('search-wrap').style.display = tab === 'home' ? 'flex' : 'none';
       document.getElementById('add-btn').style.display = tab === 'home' ? 'flex' : 'none';
-      document.getElementById('page-title').textContent = tab === 'home' ? '我的账号' : '设置';
+      const titles = { home: '我的账号', shots: '截图记事', settings: '设置' };
+      document.getElementById('page-title').textContent = titles[tab] || '密码本';
+      if (tab === 'shots') renderShots();
     });
+  });
+
+  document.getElementById('overlay-toggle-item').addEventListener('click', () => {
+    setOverlayEnabledUI(!overlayEnabled);
+  });
+  document.getElementById('overlay-perm-btn').addEventListener('click', () => {
+    if (nativePlugin) nativePlugin.openOverlaySettings();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && cryptoKey) syncPendingScreenshots();
   });
 
   // Settings
@@ -995,7 +1146,7 @@ function init() {
   });
 
   document.getElementById('about-btn').addEventListener('click', () => {
-    alert('密码本 v1.0\n\n• 数据加密保存在本机浏览器\n• 不上传任何服务器\n• 忘记 PIN 码将无法恢复数据\n• 建议定期导出备份\n\n添加到主屏幕后可像 App 一样使用');
+    alert('密码本 v2.0\n\n• 数据加密保存在本机\n• 支持后台悬浮球 + 截图保存\n• 需在设置中开启悬浮窗权限');
   });
 
   document.getElementById('clear-data-btn').addEventListener('click', async () => {
