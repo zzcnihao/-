@@ -113,7 +113,6 @@ public class OverlayService extends Service {
         ScreenshotStore.setOverlayEnabled(this, false);
         removeBubbleMenu();
         removeBubble();
-        stopForeground(true);
         stopSelf();
         Toast.makeText(getApplicationContext(), "已退出悬浮球", Toast.LENGTH_SHORT).show();
     }
@@ -150,7 +149,6 @@ public class OverlayService extends Service {
         tv.setTextSize(22);
         tv.setGravity(Gravity.CENTER);
         tv.setBackground(bg);
-        tv.setElevation(dp(6));
 
         bubbleLayoutParams = new WindowManager.LayoutParams(
                 size, size, overlayType(),
@@ -453,7 +451,6 @@ public class OverlayService extends Service {
             removePrompt();
             Toast.makeText(getApplicationContext(), "截图已保存，打开密码本可在「截图」页查看", Toast.LENGTH_LONG).show();
             showSavedNotification();
-            sendBroadcast(new Intent(BROADCAST_SCREENSHOT_SAVED));
         } catch (Exception e) {
             removePrompt();
             Toast.makeText(getApplicationContext(), "保存失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
