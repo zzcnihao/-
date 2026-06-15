@@ -403,6 +403,7 @@
     .cat-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; box-shadow: 0 4px 16px var(--accent-glow); }
 
     .entry-list { padding: 0 20px 16px; flex: 1; }
+    #shots-view .entry-list { padding: 0 0 calc(16px + env(safe-area-inset-bottom)); }
     .entry-card { display: none; }
 
     .empty-state {
@@ -616,57 +617,90 @@
     }
     .toggle-switch.on::after { transform: translateX(20px); }
 
-    .shot-grid { padding: 0 16px 16px; display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .shot-album { padding: 0; }
+    .shot-date-group + .shot-date-group { margin-top: 18px; }
+    .shot-date-label {
+      padding: 10px 16px 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.02em;
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: linear-gradient(180deg, var(--bg) 70%, transparent);
+    }
+    .shot-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      padding: 0 2px;
+    }
     .shot-grid .shot-card {
-      background: rgba(255, 255, 255, 0.96);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      aspect-ratio: 1;
+      background: rgba(0, 0, 0, 0.06);
+      border: none;
+      border-radius: 0;
       overflow: hidden;
-      box-shadow: var(--shadow);
-      transition: transform 0.1s ease;
+      box-shadow: none;
+      transition: transform 0.12s ease, opacity 0.12s ease;
       position: relative;
       touch-action: manipulation;
       -webkit-user-select: none;
       user-select: none;
     }
-    .shot-card:active { transform: scale(0.99); }
+    .shot-grid .shot-card:nth-child(3n+1) { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+    .shot-grid .shot-card:nth-child(3n) { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+    .shot-card:active { transform: scale(0.97); opacity: 0.92; }
     .shot-card.pressing {
-      transform: scale(0.98);
-      box-shadow: 0 0 0 3px var(--danger-soft), var(--shadow-card);
+      transform: scale(0.96);
+      opacity: 0.88;
     }
     .shot-card.pressing::after {
-      content: ''; position: absolute; bottom: 0; left: 0; height: 3px;
-      background: var(--danger); z-index: 2;
-      animation: longpress-bar 480ms linear forwards;
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(214, 69, 69, 0.22);
+      z-index: 2;
+      pointer-events: none;
+      animation: shot-press-flash 0.48s ease forwards;
     }
-    @keyframes longpress-bar { from { width: 0; } to { width: 100%; } }
+    @keyframes shot-press-flash { from { opacity: 0.15; } to { opacity: 1; } }
     .shot-card img {
       width: 100%;
-      height: auto;
-      max-height: min(72vh, 640px);
-      object-fit: contain;
-      object-position: center top;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
       display: block;
       background: rgba(0, 0, 0, 0.04);
       pointer-events: none;
     }
-    .shot-card .shot-meta {
-      padding: 12px 14px 14px;
-      font-size: 11px;
+    .shot-card .shot-meta { display: none; }
+    .shot-card.has-creds::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--purple);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.85);
+      z-index: 1;
+    }
+    .shot-ocr-banner {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--purple-soft, rgba(25, 118, 210, 0.08));
+      border: 1px solid var(--border);
+      font-size: 12px;
       color: var(--text-secondary);
-      line-height: 1.4;
-      border-top: 1px solid var(--border);
+      line-height: 1.5;
     }
-    .shot-card .shot-meta strong {
-      display: block;
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .shot-ocr-banner strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 13px; }
+    .detail-ocr-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .detail-ocr-actions .btn { flex: 1; }
 
     .dashboard { padding: 0 16px 8px; }
     .action-primary {
@@ -775,7 +809,7 @@
       cursor: pointer; padding: 4px 0;
     }
 
-    .shots-toolbar { padding: 0 20px 14px; }
+    .shots-toolbar { padding: 0 16px 12px; }
     .shots-toolbar .hint-text {
       font-size: 12px; color: var(--text-secondary);
       background: var(--glass-strong); padding: 12px 16px;
@@ -900,7 +934,7 @@
     /* 移动端：减轻毛玻璃以提升输入与滚动流畅度 */
     @media (pointer: coarse) {
       .form-group input, .form-group textarea, .form-group select,
-      .search-bar input, .search-bar, .vault-row, .shot-grid .shot-card,
+      .search-bar input, .search-bar, .vault-row,
       .modal, .bottom-nav, .app-header {
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
@@ -908,7 +942,7 @@
       .form-group input, .form-group textarea, .search-bar input {
         background: rgba(255, 255, 255, 0.97);
       }
-      .vault-row, .shot-grid .shot-card, .modal {
+      .vault-row, .modal {
         background: rgba(255, 255, 255, 0.97);
       }
       .ambient-bg .orb {
@@ -1056,7 +1090,7 @@
       <div class="shots-toolbar">
         <div class="hint-text">
           <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-          点击查看 · 长按约 0.5 秒删除
+          相册浏览 · 点击预览 · 长按删除 · 自动识别账号密码
         </div>
       </div>
       <div class="entry-list" id="shots-list"></div>
@@ -1207,6 +1241,7 @@
 <div class="action-sheet-overlay" id="shot-action-sheet">
   <div class="action-sheet">
     <div class="action-sheet-title" id="action-sheet-title">截图操作</div>
+    <button class="action-item" id="action-ocr-add">识别并添加账号</button>
     <button class="action-item" id="action-view-shot">查看大图</button>
     <button class="action-item danger" id="action-delete-shot">删除截图</button>
     <button class="action-item cancel" id="action-cancel">取消</button>
@@ -1226,6 +1261,8 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="js/vendor/tesseract.min.js"></script>
+<script src="js/mishi-ocr.js"></script>
 <script src="js/mishi-ext.js"></script>
 <script>
 const STORAGE_KEY = 'vault_v1';
@@ -1386,12 +1423,14 @@ async function syncPendingScreenshots() {
     const res = await nativePlugin.getPendingScreenshots();
     const items = JSON.parse(res.items || '[]');
     if (!items.length) return;
+    const newEntryIds = [];
     for (const item of items) {
       const data = await nativePlugin.consumeScreenshot({ id: item.id });
       const d = new Date(data.time || Date.now());
       const label = `截图 ${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const entryId = uid();
       entries.unshift({
-        id: uid(),
+        id: entryId,
         type: 'screenshot',
         name: label,
         category: '截图',
@@ -1400,6 +1439,7 @@ async function syncPendingScreenshots() {
         notes: '',
         updatedAt: Date.now()
       });
+      newEntryIds.push(entryId);
     }
     await saveVault();
     renderShots();
@@ -1407,6 +1447,9 @@ async function syncPendingScreenshots() {
     renderHomeRecent();
     renderEntries();
     toast(`已收录 ${items.length} 张截屏密码`, 'success');
+    if (newEntryIds[0]) {
+      processScreenshotOcr(newEntryIds[0], { autoOpen: true, showToast: true });
+    }
   } catch (e) {
     console.error('sync screenshots', e);
     toast('截图同步失败，请稍后在「截图」页重试', 'error');
@@ -1426,6 +1469,99 @@ function isToday(ts) {
   const d = new Date(ts || Date.now());
   const n = new Date();
   return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+
+function isYesterday(ts) {
+  const d = new Date(ts || Date.now());
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  return d.getFullYear() === y.getFullYear() && d.getMonth() === y.getMonth() && d.getDate() === y.getDate();
+}
+
+function formatShotDateGroup(ts) {
+  if (isToday(ts)) return '今天';
+  if (isYesterday(ts)) return '昨天';
+  const d = new Date(ts || Date.now());
+  const now = new Date();
+  if (d.getFullYear() === now.getFullYear()) return `${d.getMonth() + 1}月${d.getDate()}日`;
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+function groupShotsByDate(list) {
+  const groups = [];
+  const map = new Map();
+  for (const item of list) {
+    const d = new Date(item.updatedAt || Date.now());
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    if (!map.has(key)) {
+      const group = { key, label: formatShotDateGroup(item.updatedAt), items: [] };
+      map.set(key, group);
+      groups.push(group);
+    }
+    map.get(key).items.push(item);
+  }
+  return groups;
+}
+
+function shotHasCredentials(entry) {
+  return !!(entry?.ocrAccount || entry?.ocrPassword || entry?.ocrUrl);
+}
+
+function guessCategoryFromShot(entry) {
+  const tag = (entry?.shotTag || '').toLowerCase();
+  if (tag.includes('游戏')) return '游戏';
+  if (tag.includes('购物')) return '购物';
+  if (tag.includes('社交')) return '社交';
+  if (tag.includes('学习')) return '学习';
+  if (tag.includes('网站')) return '小众网站';
+  return '其他';
+}
+
+function buildOcrPrefill(entry) {
+  const name = (entry?.ocrName || entry?.name || '').replace(/^截图\s*/, '').trim();
+  const category = entry?.ocrUrl ? '小众网站' : guessCategoryFromShot(entry);
+  return {
+    name: name || '',
+    account: entry?.ocrAccount || '',
+    password: entry?.ocrPassword || '',
+    url: entry?.ocrUrl || '',
+    category
+  };
+}
+
+function openEditFromShot(entry) {
+  const prefill = buildOcrPrefill(entry);
+  openEdit(null, prefill);
+  switchTab('passwords');
+}
+
+async function processScreenshotOcr(id, opts = {}) {
+  const entry = entries.find(e => e.id === id);
+  if (!entry?.imageData || entry.ocrDone || !window.MishiOcr) return null;
+  try {
+    if (opts.showToast && typeof toast === 'function') toast('正在识别截图中的账号、密码和网址…', 'info');
+    const result = await window.MishiOcr.recognizeCredentials(entry.imageData);
+    entry.ocrDone = true;
+    entry.ocrAccount = result.account || '';
+    entry.ocrPassword = result.password || '';
+    entry.ocrName = result.name || '';
+    entry.ocrUrl = result.url || '';
+    await saveVault();
+    renderShots();
+    const hasOcr = !!(result.account || result.password || result.url);
+    if (hasOcr && opts.autoOpen) {
+      openEditFromShot(entry);
+      toast('已识别信息，请确认后保存', 'success');
+    } else if (hasOcr && opts.showToast) {
+      toast('已识别到账号或网址信息', 'success');
+    }
+    return result;
+  } catch (e) {
+    console.error('screenshot ocr', e);
+    entry.ocrDone = true;
+    if (opts.showToast && typeof toast === 'function') toast('未能识别账号或网址，可手动添加', 'error');
+    return null;
+  }
 }
 
 function showConfirm(title, message, onOk, opts = {}) {
@@ -1600,14 +1736,19 @@ function renderShots() {
     bindEmptyActions(container);
     return;
   }
-  container.innerHTML = `<div class="shot-grid">${list.map(e => `
-    <div class="shot-card" data-id="${e.id}">
-      <img src="data:image/jpeg;base64,${e.imageData}" alt="" loading="lazy">
-      <div class="shot-meta">
-        <strong>${esc(e.name)}</strong>
-        ${formatShotTime(e.updatedAt)}
-      </div>
-    </div>`).join('')}</div>`;
+  const groups = groupShotsByDate(list);
+  container.innerHTML = `<div class="shot-album">${groups.map(g => `
+    <section class="shot-date-group">
+      <div class="shot-date-label">${esc(g.label)}</div>
+      <div class="shot-grid">${g.items.map(e => `
+        <div class="shot-card${shotHasCredentials(e) ? ' has-creds' : ''}" data-id="${e.id}">
+          <img src="data:image/jpeg;base64,${e.imageData}" alt="" loading="lazy">
+          <div class="shot-meta">
+            <strong>${esc(e.name)}</strong>
+            ${formatShotTime(e.updatedAt)}
+          </div>
+        </div>`).join('')}</div>
+    </section>`).join('')}</div>`;
   container.querySelectorAll('.shot-card').forEach(card => {
     const id = card.dataset.id;
     bindLongPress(
@@ -1652,10 +1793,21 @@ function openShotDetail(id) {
   if (!e?.imageData) return;
   detailEntryId = id;
   document.getElementById('detail-name').textContent = e.name;
+  const ocrBlock = shotHasCredentials(e) ? `
+    <div class="shot-ocr-banner">
+      <strong>已识别信息</strong>
+      ${e.ocrUrl ? `网址：${esc(e.ocrUrl)}<br>` : ''}
+      ${e.ocrAccount ? `账号：${esc(e.ocrAccount)}<br>` : ''}
+      ${e.ocrPassword ? `密码：${'•'.repeat(Math.min(e.ocrPassword.length, 8))}` : ''}
+    </div>` : '';
   document.getElementById('detail-body').innerHTML = `
     <img src="data:image/jpeg;base64,${e.imageData}" style="width:100%;max-height:75vh;object-fit:contain;border-radius:16px;margin-bottom:12px;box-shadow:var(--shadow);background:rgba(0,0,0,0.04)" alt="">
+    ${ocrBlock}
     <div class="detail-row"><div><div class="detail-label">收录时间</div><div class="detail-value">${formatShotTime(e.updatedAt)}</div></div></div>
     ${e.notes ? `<div class="detail-row"><div><div class="detail-label">备注</div><div class="detail-value">${esc(e.notes)}</div></div></div>` : ''}
+    <div class="detail-ocr-actions">
+      <button type="button" class="btn btn-outline" id="detail-ocr-btn">${shotHasCredentials(e) ? '添加到分类' : '识别并添加账号'}</button>
+    </div>
   `;
   document.getElementById('detail-edit-btn').style.display = 'none';
   const delBtn = document.getElementById('detail-delete-btn');
@@ -1663,6 +1815,16 @@ function openShotDetail(id) {
   delBtn.onclick = () => {
     closeModals();
     showConfirm('删除截图', '确定要删除这张截屏密码吗？删除后无法恢复。', () => deleteShot(id), { danger: true, okLabel: '删除' });
+  };
+  document.getElementById('detail-ocr-btn').onclick = async () => {
+    if (!shotHasCredentials(e)) {
+      closeModals();
+      toast('正在识别…', 'info');
+      await processScreenshotOcr(id, { showToast: true, autoOpen: true });
+      return;
+    }
+    closeModals();
+    openEditFromShot(e);
   };
   document.getElementById('detail-modal').classList.add('open');
 }
@@ -1944,10 +2106,12 @@ function openDetail(id) {
   document.getElementById('detail-modal').classList.add('open');
 }
 
-function openEdit(id) {
+function openEdit(id, prefill) {
   editingId = id || null;
   document.getElementById('modal-title').textContent = id ? '编辑账号' : '添加账号';
   document.getElementById('delete-btn').style.display = id ? 'block' : 'none';
+  const pf = !id ? (prefill || window.editPrefill) : null;
+  window.editPrefill = null;
   if (id) {
     const e = entries.find(x => x.id === id);
     document.getElementById('f-name').value = e.name;
@@ -1956,13 +2120,14 @@ function openEdit(id) {
     document.getElementById('f-password').value = e.password || '';
     document.getElementById('f-notes').value = e.notes || '';
   } else {
-    document.getElementById('f-name').value = '';
-    document.getElementById('f-category').value = '其他';
-    document.getElementById('f-account').value = '';
-    document.getElementById('f-password').value = '';
-    document.getElementById('f-notes').value = '';
+    document.getElementById('f-name').value = pf?.name || '';
+    document.getElementById('f-category').value = pf?.category || '其他';
+    document.getElementById('f-account').value = pf?.account || '';
+    document.getElementById('f-password').value = pf?.password || '';
+    document.getElementById('f-notes').value = pf?.notes || '';
   }
   document.getElementById('edit-modal').classList.add('open');
+  if (typeof refreshSelectUI === 'function') refreshSelectUI(document.getElementById('f-category'));
 }
 
 function closeModals() {
@@ -2173,6 +2338,18 @@ function init() {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
+  document.getElementById('action-ocr-add').addEventListener('click', async () => {
+    const id = actionShotId;
+    const entry = entries.find(x => x.id === id);
+    closeActionSheet();
+    if (!entry) return;
+    if (shotHasCredentials(entry)) {
+      openEditFromShot(entry);
+      return;
+    }
+    toast('正在识别…', 'info');
+    await processScreenshotOcr(id, { showToast: true, autoOpen: true });
+  });
   document.getElementById('action-view-shot').addEventListener('click', () => {
     const id = actionShotId;
     closeActionSheet();

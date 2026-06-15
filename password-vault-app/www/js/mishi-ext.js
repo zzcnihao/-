@@ -201,7 +201,6 @@
     if (s.theme === 'naiwan') s.theme = 'sea';
     if (s.autoLockSec === undefined) s.autoLockSec = 60;
     if (!s.cardStyle) s.cardStyle = 'card-round';
-    if (!Array.isArray(s.activityLog)) s.activityLog = [];
     if (meta.setupComplete === undefined) meta.setupComplete = !!meta.vault;
     return meta;
   }
@@ -217,7 +216,7 @@
 
   function getSettings() {
     const meta = ensureMetaSettings();
-    return meta ? meta.settings : { theme: 'sea', autoLockSec: 60, cardStyle: 'card-round', activityLog: [] };
+    return meta ? meta.settings : { theme: 'sea', autoLockSec: 60, cardStyle: 'card-round' };
   }
 
   function applyTheme(id) {
@@ -231,29 +230,6 @@
     document.querySelectorAll('.theme-picker-card[data-theme]').forEach(el => {
       el.classList.toggle('selected', el.dataset.theme === theme.id);
     });
-  }
-
-  function pushActivity(action, detail) {
-    persistMeta(m => {
-      const log = m.settings.activityLog || [];
-      log.unshift({ action, detail: detail || '', at: Date.now() });
-      m.settings.activityLog = log.slice(0, 50);
-    });
-    renderActivityLog();
-  }
-
-  function renderActivityLog() {
-    const ul = $('mishi-activity-log');
-    if (!ul) return;
-    const log = getSettings().activityLog || [];
-    if (!log.length) {
-      ul.innerHTML = '<li>暂无记录</li>';
-      return;
-    }
-    ul.innerHTML = log.map(item => {
-      const t = new Date(item.at).toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', month: '2-digit', day: '2-digit' });
-      return `<li>${t} · ${item.action}${item.detail ? ' — ' + item.detail : ''}</li>`;
-    }).join('');
   }
 
   function buildSearchIndex() {
@@ -406,15 +382,16 @@
   function patchOpenEdit() {
     if (typeof global.openEdit !== 'function' || global.openEdit.__mishi) return;
     const orig = global.openEdit;
-    global.openEdit = function (id) {
-      orig(id);
+    global.openEdit = function (id, prefill) {
+      orig(id, prefill);
       const urlInput = $('f-url');
       if (!urlInput) return;
+      const pf = !id ? prefill : null;
       if (id) {
         const e = (global.entries || []).find(x => x.id === id);
         urlInput.value = (e && e.url) || '';
       } else {
-        urlInput.value = '';
+        urlInput.value = pf?.url || '';
       }
       refreshSelectUI($('f-category'));
     };
@@ -452,7 +429,6 @@
         global.entries.push(data);
       }
       await global.saveVault();
-      pushActivity('保存', data.name);
       if (typeof global.closeModals === 'function') global.closeModals();
       if (typeof global.renderEntries === 'function') global.renderEntries();
       if (typeof global.toast === 'function') global.toast(editingId ? '已更新' : '已保存', 'success');
@@ -471,14 +447,6 @@
         await syncNativeIndex();
       };
       global.saveVault.__mishi = true;
-    }
-    if (typeof global.copyText === 'function' && !global.copyText.__mishi) {
-      const origCopy = global.copyText;
-      global.copyText = async function (text) {
-        await origCopy(text);
-        pushActivity('复制', (text || '').slice(0, 24));
-      };
-      global.copyText.__mishi = true;
     }
   }
 
@@ -625,11 +593,6 @@
           <div class="toggle-switch" id="mishi-shot-listen-toggle"></div>
         </div>
       </div>
-      <div class="settings-group-label">活动记录</div>
-      <div class="settings-section">
-        <ul class="mishi-activity-log" id="mishi-activity-log"></ul>
-        <button type="button" class="btn btn-outline" id="mishi-clear-log" style="width:100%;margin-top:8px">清空记录</button>
-      </div>
     `;
 
     const anchor = settings.querySelector('.settings-group-label');
@@ -691,12 +654,6 @@
       shotItem.style.display = 'none';
     }
 
-    $('mishi-clear-log')?.addEventListener('click', () => {
-      persistMeta(m => { m.settings.activityLog = []; });
-      renderActivityLog();
-    });
-
-    renderActivityLog();
     applyTheme(getSettings().theme);
   }
 
