@@ -299,7 +299,7 @@
     .level-badge { display: none; }
 
     /* ── Bento 仪表盘 ── */
-    .home-bento { padding: 0 16px 20px; }
+    .home-bento { display: none; }
 
     .section-head {
       display: flex; align-items: center; justify-content: space-between;
@@ -463,17 +463,6 @@
     .nav-fab:active { transform: scale(0.94); }
     .nav-fab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2.2; }
 
-    .shot-card {
-      background: var(--glass-strong); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); overflow: hidden;
-      box-shadow: var(--shadow); backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      transform: rotate(var(--tilt, 0deg));
-      transition: transform 0.15s;
-    }
-    .shot-card:nth-child(odd) { --tilt: -1deg; }
-    .shot-card:nth-child(even) { --tilt: 1deg; }
-    .shot-card img { border-bottom: 3px solid var(--accent); }
 
     .achieve-row { display: none; }
 
@@ -627,30 +616,40 @@
     }
     .toggle-switch.on::after { transform: translateX(20px); }
 
-    .shot-grid { padding: 0 20px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .shot-grid { padding: 0 16px 16px; display: grid; grid-template-columns: 1fr; gap: 16px; }
     .shot-grid .shot-card {
-      background: var(--glass-strong);
+      background: rgba(255, 255, 255, 0.96);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       overflow: hidden;
       box-shadow: var(--shadow);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      transition: transform 0.12s, box-shadow 0.15s;
+      transition: transform 0.1s ease;
       position: relative;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
     }
-    .shot-card:active { transform: scale(0.98); }
+    .shot-card:active { transform: scale(0.99); }
     .shot-card.pressing {
-      transform: scale(0.96);
+      transform: scale(0.98);
       box-shadow: 0 0 0 3px var(--danger-soft), var(--shadow-card);
     }
     .shot-card.pressing::after {
       content: ''; position: absolute; bottom: 0; left: 0; height: 3px;
       background: var(--danger); z-index: 2;
-      animation: longpress-bar 520ms linear forwards;
+      animation: longpress-bar 480ms linear forwards;
     }
     @keyframes longpress-bar { from { width: 0; } to { width: 100%; } }
-    .shot-card img { width: 100%; aspect-ratio: 9/16; object-fit: cover; display: block; background: var(--surface2); }
+    .shot-card img {
+      width: 100%;
+      height: auto;
+      max-height: min(72vh, 640px);
+      object-fit: contain;
+      object-position: center top;
+      display: block;
+      background: rgba(0, 0, 0, 0.04);
+      pointer-events: none;
+    }
     .shot-card .shot-meta {
       padding: 12px 14px 14px;
       font-size: 11px;
@@ -898,6 +897,26 @@
     }
     .detail-copy.copied { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 
+    /* 移动端：减轻毛玻璃以提升输入与滚动流畅度 */
+    @media (pointer: coarse) {
+      .form-group input, .form-group textarea, .form-group select,
+      .search-bar input, .search-bar, .vault-row, .shot-grid .shot-card,
+      .modal, .bottom-nav, .app-header {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+      .form-group input, .form-group textarea, .search-bar input {
+        background: rgba(255, 255, 255, 0.97);
+      }
+      .vault-row, .shot-grid .shot-card, .modal {
+        background: rgba(255, 255, 255, 0.97);
+      }
+      .ambient-bg .orb {
+        animation: none;
+        opacity: 0.35;
+      }
+    }
+
   </style>
   <link rel="stylesheet" href="css/mishi-sticker.css">
   <link rel="stylesheet" href="css/mishi-pro.css">
@@ -1037,7 +1056,7 @@
       <div class="shots-toolbar">
         <div class="hint-text">
           <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-          点击查看 · 长按 0.5 秒删除
+          点击查看 · 长按约 0.5 秒删除
         </div>
       </div>
       <div class="entry-list" id="shots-list"></div>
@@ -1210,6 +1229,14 @@
 <script src="js/mishi-ext.js"></script>
 <script>
 const STORAGE_KEY = 'vault_v1';
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
 const CATEGORIES = ['全部','社交','游戏','购物','学习','小众网站','其他'];
 
 /* 头图：登录页已改为内联 logo，无需动态注入 */
@@ -1483,35 +1510,61 @@ function bindEmptyActions(container) {
 }
 
 function bindLongPress(el, onLongPress, onTap) {
+  const DURATION = 480;
+  const MOVE_THRESH = 14;
   let timer = null;
+  let sx = 0;
+  let sy = 0;
+  let longFired = false;
   let moved = false;
-  let longPressed = false;
-  const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
-  const start = () => {
+
+  const endPress = () => {
+    if (timer) { clearTimeout(timer); timer = null; }
+    el.classList.remove('pressing');
+  };
+
+  el.style.touchAction = 'manipulation';
+
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    longFired = false;
     moved = false;
-    longPressed = false;
+    sx = e.clientX;
+    sy = e.clientY;
+    endPress();
     el.classList.add('pressing');
     timer = setTimeout(() => {
       timer = null;
-      longPressed = true;
+      longFired = true;
       el.classList.remove('pressing');
       onLongPress();
       if (navigator.vibrate) navigator.vibrate(35);
-    }, 520);
-  };
-  el.addEventListener('touchstart', start, { passive: true });
-  el.addEventListener('touchmove', () => { moved = true; clear(); el.classList.remove('pressing'); }, { passive: true });
-  el.addEventListener('touchend', () => { clear(); el.classList.remove('pressing'); });
-  el.addEventListener('touchcancel', () => { clear(); el.classList.remove('pressing'); });
-  el.addEventListener('mousedown', start);
-  el.addEventListener('mousemove', () => { if (timer) { moved = true; clear(); el.classList.remove('pressing'); } });
-  el.addEventListener('mouseup', () => { clear(); el.classList.remove('pressing'); });
-  el.addEventListener('mouseleave', () => { clear(); el.classList.remove('pressing'); });
-  el.addEventListener('click', () => {
-    if (longPressed) { longPressed = false; return; }
-    if (!moved) onTap();
-    moved = false;
+    }, DURATION);
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
   });
+
+  el.addEventListener('pointermove', (e) => {
+    if (!timer) return;
+    if (Math.abs(e.clientX - sx) > MOVE_THRESH || Math.abs(e.clientY - sy) > MOVE_THRESH) {
+      moved = true;
+      endPress();
+    }
+  });
+
+  el.addEventListener('pointerup', (e) => {
+    if (longFired) {
+      e.preventDefault();
+      e.stopPropagation();
+      longFired = false;
+      endPress();
+      return;
+    }
+    const shortTap = !!timer && !moved;
+    endPress();
+    if (shortTap) onTap();
+  });
+
+  el.addEventListener('pointercancel', endPress);
 }
 
 function showShotActionSheet(id) {
@@ -1565,71 +1618,8 @@ function renderShots() {
   });
 }
 function renderHomeBento() {
-  const el = document.getElementById('home-bento');
-  if (!el) return;
   updateHeaderGreeting();
   updateNavBadges();
-  const shots = getShots();
-  const pwds = entries.filter(e => e.type !== 'screenshot' && !e.imageData);
-
-  el.innerHTML = `
-    <div class="home-hero-banner">
-      <span class="hero-deco">✦</span>
-      <div class="hero-content">
-        <span class="hero-badge">🔒 本机 AES 加密</span>
-        <h2 class="hero-tagline">你的私密小仓库</h2>
-        <p class="hero-sub">账号 · 网址 · 截屏，一站式安心收纳</p>
-      </div>
-      <div class="hero-mascot">🐱</div>
-    </div>
-    <div class="stat-strip stat-strip-2">
-      <div class="stat-chip" data-goto="passwords">
-        <span class="sc-icon">🔑</span>
-        <div class="sc-val">${pwds.length}</div>
-        <div class="sc-label">密码</div>
-      </div>
-      <div class="stat-chip" data-goto="shots">
-        <span class="sc-icon">📷</span>
-        <div class="sc-val">${shots.length}</div>
-        <div class="sc-label">截屏</div>
-      </div>
-    </div>
-    <div class="feature-grid">
-      <button type="button" class="feature-tile" data-ft="gen">
-        <span class="ft-icon c-blue">🎲</span>
-        <span class="ft-text"><div class="ft-title">随机密码</div><div class="ft-desc">一键生成强密码</div></span>
-        <svg class="ft-arrow" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-      </button>
-      <button type="button" class="feature-tile" data-ft="theme">
-        <span class="ft-icon c-peach">🎨</span>
-        <span class="ft-text"><div class="ft-title">主题贴纸</div><div class="ft-desc">6 套马卡龙配色</div></span>
-        <svg class="ft-arrow" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-      </button>
-      <button type="button" class="feature-tile" data-ft="overlay">
-        <span class="ft-icon c-lav">🔮</span>
-        <span class="ft-text"><div class="ft-title">悬浮球</div><div class="ft-desc">截屏自动收纳</div></span>
-        <svg class="ft-arrow" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-      </button>
-    </div>`;
-
-  const bindClick = (sel, cb) => el.querySelectorAll(sel).forEach(n => n.addEventListener('click', () => {
-    if (navigator.vibrate) navigator.vibrate(8);
-    cb(n);
-  }));
-
-  bindClick('.stat-chip', node => {
-    document.querySelector(`.nav-item[data-tab="${node.dataset.goto}"]`)?.click();
-  });
-
-  bindClick('.feature-tile', btn => {
-    const ft = btn.dataset.ft;
-    if (ft === 'gen') {
-      openEdit(null);
-      setTimeout(() => document.getElementById('gen-password')?.click(), 300);
-    } else if (ft === 'theme' || ft === 'overlay') {
-      document.querySelector('.nav-item[data-tab="settings"]')?.click();
-    }
-  });
 }
 
 function renderHomeRecent() {
@@ -1663,7 +1653,7 @@ function openShotDetail(id) {
   detailEntryId = id;
   document.getElementById('detail-name').textContent = e.name;
   document.getElementById('detail-body').innerHTML = `
-    <img src="data:image/jpeg;base64,${e.imageData}" style="width:100%;border-radius:16px;margin-bottom:12px;box-shadow:var(--shadow)" alt="">
+    <img src="data:image/jpeg;base64,${e.imageData}" style="width:100%;max-height:75vh;object-fit:contain;border-radius:16px;margin-bottom:12px;box-shadow:var(--shadow);background:rgba(0,0,0,0.04)" alt="">
     <div class="detail-row"><div><div class="detail-label">收录时间</div><div class="detail-value">${formatShotTime(e.updatedAt)}</div></div></div>
     ${e.notes ? `<div class="detail-row"><div><div class="detail-label">备注</div><div class="detail-value">${esc(e.notes)}</div></div></div>` : ''}
   `;
@@ -2020,6 +2010,9 @@ async function tryUnlock() {
 }
 
 // ── Init ──
+const debouncedRenderHomeRecent = debounce(renderHomeRecent, 120);
+const debouncedRenderEntries = debounce(renderEntries, 120);
+
 function init() {
   initNative();
   mountAuthIllust();
@@ -2078,7 +2071,7 @@ function init() {
 
   document.getElementById('search-input').addEventListener('input', () => {
     updateSearchClear('search-input', 'search-clear');
-    renderEntries();
+    debouncedRenderEntries();
   });
   document.getElementById('search-clear').addEventListener('click', () => {
     const input = document.getElementById('search-input');
@@ -2090,7 +2083,7 @@ function init() {
 
   document.getElementById('home-search-input').addEventListener('input', () => {
     updateSearchClear('home-search-input', 'home-search-clear');
-    renderHomeRecent();
+    debouncedRenderHomeRecent();
   });
   document.getElementById('home-search-clear').addEventListener('click', () => {
     const input = document.getElementById('home-search-input');

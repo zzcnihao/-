@@ -331,8 +331,12 @@
 
   function bindAutoLock() {
     const handler = () => resetAutoLockTimer();
-    ['touchstart', 'keydown', 'click', 'scroll'].forEach(ev => {
+    ['touchstart', 'click', 'scroll'].forEach(ev => {
       document.addEventListener(ev, handler, { passive: true });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.matches('input, textarea, select') || e.target.isContentEditable)) return;
+      handler();
     });
     resetAutoLockTimer();
   }
