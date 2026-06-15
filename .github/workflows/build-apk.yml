@@ -1,4 +1,4 @@
-name: Build Password Vault APK
+name: Build 密拾 APK
 
 on:
   workflow_dispatch:
@@ -7,6 +7,9 @@ on:
     paths:
       - 'password-vault-app/**'
       - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -41,28 +44,9 @@ jobs:
         working-directory: password-vault-app
         run: npm ci
 
-      - name: Prepare Android web assets
+      - name: Sync Capacitor Android
         working-directory: password-vault-app
-        run: |
-          mkdir -p android/app/src/main/assets/public
-          cp -r www/. android/app/src/main/assets/public/
-          node <<'EOF'
-          const fs = require('fs');
-          const path = require('path');
-          const cfg = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
-          const assetsDir = 'android/app/src/main/assets';
-          const xmlDir = 'android/app/src/main/res/xml';
-          fs.mkdirSync(assetsDir, { recursive: true });
-          fs.mkdirSync(xmlDir, { recursive: true });
-          fs.writeFileSync(path.join(assetsDir, 'capacitor.config.json'), JSON.stringify(cfg, null, '\t'));
-          fs.writeFileSync(path.join(assetsDir, 'capacitor.plugins.json'), '[]');
-          fs.writeFileSync(path.join(xmlDir, 'config.xml'), `<?xml version='1.0' encoding='utf-8'?>
-          <widget version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-            <access origin="*" />
-          </widget>
-          `);
-          console.log('Web assets prepared.');
-          EOF
+        run: npx cap sync android
 
       - name: Build debug APK
         working-directory: password-vault-app/android
@@ -71,9 +55,29 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Upload APK
+      - name: Rename APK
+        run: |
+          cp password-vault-app/android/app/build/outputs/apk/debug/app-debug.apk mishi-v2.1-debug.apk
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: password-vault-apk
-          path: password-vault-app/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          name: mishi-apk
+          path: mishi-v2.1-debug.apk
+          retention-days: 90
+
+      - name: Create GitHub Release (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mishi-apk-${{ github.run_number }}
+          name: 密拾 APK #${{ github.run_number }}
+          body: |
+            密拾 Android Debug APK（GitHub Actions 自动构建）
+
+            - 安装前请在手机允许「未知来源应用」
+            - 本包为 debug 签名，仅供测试
+          files: mishi-v2.1-debug.apk
+          draft: false
+          prerelease: false
+          generate_release_notes: true

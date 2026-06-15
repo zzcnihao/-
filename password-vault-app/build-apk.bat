@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo   密码本 - Android APK 本地打包
+echo   密拾 - Android APK 本地打包
 echo ========================================
 echo.
 

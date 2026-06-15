@@ -1,6 +1,6 @@
 {
   "appId": "com.personal.passwordvault",
-  "appName": "PasswordVault",
+  "appName": "密拾",
   "webDir": "www",
   "android": {
     "allowMixedContent": false

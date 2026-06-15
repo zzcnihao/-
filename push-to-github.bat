@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo   密码本 - 上传到 GitHub 并云端打包
+echo   密拾 - 上传到 GitHub 并云端打包
 echo ========================================
 echo.
 
@@ -54,6 +54,7 @@ echo   1. 打开你的仓库
 echo   2. 点顶部 Actions
 echo   3. 左侧选 Build Password Vault APK
 echo   4. 点 Run workflow ^> Run workflow
-echo   5. 等 5~10 分钟，在 Artifacts 下载 密码本-apk
+echo   5. 等 5~10 分钟，在 Artifacts 下载 mishi-apk
+echo      或 Releases 页面下载 密拾 APK
 echo ========================================
 pause
