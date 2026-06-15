@@ -529,10 +529,7 @@
       persistMeta(m => { m.setupComplete = false; });
       global.currentPin = pin;
       blockAppScreen = true;
-      if (typeof global.showScreen === 'function') global.showScreen('app-screen');
-      else if (typeof global.renderCategories === 'function') {
-        global.showScreen('theme-picker-screen');
-      }
+      if (typeof global.showScreen === 'function') global.showScreen('theme-picker-screen');
       if (typeof global.setHeroIllust === 'function') global.setHeroIllust('home');
       if (typeof global.renderCategories === 'function') global.renderCategories();
       if (typeof global.renderEntries === 'function') global.renderEntries();

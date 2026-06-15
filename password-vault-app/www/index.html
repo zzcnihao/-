@@ -92,7 +92,7 @@
       align-items: center;
       padding: calc(var(--safe-top) + 20px) 20px calc(20px + var(--safe-bottom));
     }
-    #lock-screen, #setup-screen {
+    #lock-screen, #setup-screen, #theme-picker-screen {
       background: transparent;
     }
     .auth-shell {
@@ -934,6 +934,7 @@
       <button class="btn btn-primary" id="setup-btn">开始使用</button>
     </div>
   </div>
+</div>
 
 <!-- 主题选择（首次引导） -->
 <div id="theme-picker-screen" class="screen auth-screen">
@@ -952,7 +953,6 @@
       <button type="button" class="btn btn-outline" id="theme-picker-skip-perm">暂时跳过</button>
     </div>
   </div>
-</div>
 </div>
 
 <!-- 解锁 -->
@@ -1207,6 +1207,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="js/mishi-ext.js"></script>
 <script>
 const STORAGE_KEY = 'vault_v1';
 const CATEGORIES = ['全部','社交','游戏','购物','学习','小众网站','其他'];
@@ -2253,6 +2254,5 @@ function init() {
 init();
 </script>
   <div id="privacy-blur" class="privacy-blur" aria-hidden="true"></div>
-  <script src="js/mishi-ext.js"></script>
 </body>
 </html>
