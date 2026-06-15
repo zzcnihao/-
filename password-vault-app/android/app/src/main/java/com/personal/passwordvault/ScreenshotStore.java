@@ -1,4 +1,4 @@
-﻿package com.personal.passwordvault;
+package com.personal.passwordvault;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -10,7 +10,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.UUID;
 
 public class ScreenshotStore {
@@ -76,29 +75,6 @@ public class ScreenshotStore {
         if (found == null) return null;
         prefs.edit().putString(KEY_PENDING, next.toString()).apply();
         return found;
-    }
-
-    public static String getRecentShotsJson(Context ctx, int limit) {
-        File dir = getShotDir(ctx);
-        File[] files = dir.listFiles();
-        if (files == null) return "[]";
-        Arrays.sort(files, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
-        JSONArray arr = new JSONArray();
-        int count = 0;
-        for (File f : files) {
-            if (!f.isFile()) continue;
-            if (limit > 0 && count >= limit) break;
-            try {
-                JSONObject obj = new JSONObject();
-                obj.put("path", f.getAbsolutePath());
-                obj.put("time", f.lastModified());
-                obj.put("name", f.getName());
-                arr.put(obj);
-                count++;
-            } catch (Exception ignored) {
-            }
-        }
-        return arr.toString();
     }
 
     public static boolean isOverlayEnabled(Context ctx) {
